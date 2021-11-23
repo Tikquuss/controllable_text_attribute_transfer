@@ -6,12 +6,13 @@ from torch.autograd import Variable
 from nltk.translate.bleu_score import SmoothingFunction
 import nltk
 import tqdm
-
+import pandas as pd
+from pandas.io.parsers import ParserError
 
 def calc_bleu(reference, hypothesis):
     weights = (0.25, 0.25, 0.25, 0.25)
     return nltk.translate.bleu_score.sentence_bleu(reference, hypothesis, weights,
-                                                   smoothing_function=SmoothingFunction().method1)
+                                                    smoothing_function=SmoothingFunction().method1)
 
 
 def load_human_answer(references_files, text_column):
@@ -84,7 +85,7 @@ def load_data(file_, text_column):
     except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
         df = pd.read_csv(file_, lineterminator='\n')
     #for row in df.iterrows() : 
-    for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
+    for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_):
         text = row[1][text_column].strip()
         text = text.split()
         parse_line = [int(x) for x in text]
@@ -149,14 +150,12 @@ class non_pair_data_loader():
         self.vocab_size = vocab_size
 
 
-    def create_batches(self, args, if_shuffle=True):
-        train_file_list = args.train_file_list
-        #train_label_list
+    def create_batches(self, args, file_list, if_shuffle=True):
         text_column = args.text_column
         label_column = args.label_column
         self.data_label_pairs = []
-        for _index in range(len(train_file_list)):
-            file_item = train_file_list[_index]
+        for _index in range(len(file_list)):
+            file_item = file_list[_index]
             try :
                 df = pd.read_csv(file_item)
             except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
@@ -218,7 +217,7 @@ class non_pair_data_loader():
 
         self.pointer = 0
         print("Load data from %s !\nCreate %d batches with %d batch_size" % (
-            ' '.join(train_file_list), self.num_batch, self.batch_size
+            ' '.join(file_list), self.num_batch, self.batch_size
         ))
 
     def make_std_mask(self, tgt, pad):

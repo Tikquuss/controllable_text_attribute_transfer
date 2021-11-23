@@ -56,9 +56,6 @@ def preparation(args):
 
     # prepare data
     args.id_to_word, args.vocab_size = prepare_data(args)
-    args.train_file_list = [args.train_data_file]
-    if os.path.exists(args.val_data_file) :
-        args.train_file_list.append(args.val_data_file)
 
 def train_iters(args, ae_model, dis_model):
     train_data_loader = non_pair_data_loader(
@@ -66,19 +63,23 @@ def train_iters(args, ae_model, dis_model):
         id_eos=args.id_eos, id_unk=args.id_unk,
         max_sequence_length=args.max_sequence_length, vocab_size=args.vocab_size
     )
-    train_data_loader.create_batches(args, if_shuffle=True)
+    file_list = [args.train_data_file]
+    if os.path.exists(args.val_data_file) :
+        file_list.append(args.val_data_file)
+
+    train_data_loader.create_batches(args, file_list, if_shuffle=True)
     add_log("Start train process.")
     ae_model.train()
     dis_model.train()
 
     ae_optimizer = NoamOpt(ae_model.src_embed[0].d_model, 1, 2000,
-                           torch.optim.Adam(ae_model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
+                            torch.optim.Adam(ae_model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
     dis_optimizer = torch.optim.Adam(dis_model.parameters(), lr=0.0001)
 
     ae_criterion = get_cuda(LabelSmoothing(size=args.vocab_size, padding_idx=args.id_pad, smoothing=0.1))
     dis_criterion = nn.BCELoss(size_average=True)
 
-    for epoch in range(200):
+    for epoch in range(args.max_epochs):
         print('-' * 94)
         epoch_start_time = time.time()
         for it in range(train_data_loader.num_batch):
@@ -127,24 +128,16 @@ def train_iters(args, ae_model, dis_model):
     return
 
 
-def eval_iters(ae_model, dis_model):
+def eval_iters(args, ae_model, dis_model):
     eval_data_loader = non_pair_data_loader(
         batch_size=1, id_bos=args.id_bos,
         id_eos=args.id_eos, id_unk=args.id_unk,
         max_sequence_length=args.max_sequence_length, vocab_size=args.vocab_size
     )
-    eval_file_list = [
-        args.data_path + 'sentiment.test.0',
-        args.data_path + 'sentiment.test.1',
-    ]
-    eval_label_list = [
-        [0],
-        [1],
-    ]
-    eval_data_loader.create_batches(args, if_shuffle=False)
+    file_list = [args.test_data_file]
+    eval_data_loader.create_batches(args, file_list, if_shuffle=False)
     gold_ans = load_human_answer(args.data_path)
     assert len(gold_ans) == eval_data_loader.num_batch
-
 
     add_log("Start eval process.")
     ae_model.eval()
@@ -219,12 +212,16 @@ def get_parser():
     parser.add_argument('--embedding_dropout', type=float, default=0.5)
     parser.add_argument('--learning_rate', type=float, default=0.001)
     parser.add_argument('--label_size', type=int, default=1)
+    
 
+    ######################################################################################
+    # Training
+    ###################################################################################### 
+    parser.add_argument('--max_epochs', type=int, default=10)   
     
     ######################################################################################
     # Checkpoint
     ######################################################################################
-
     parser.add_argument('--if_load_from_checkpoint', type=bool_flag, default=False)
     if parser.parse_known_args()[0].if_load_from_checkpoint:
         parser.add_argument('--checkpoint_name', type=str, default='', help='1557667911, ...')
@@ -239,10 +236,10 @@ def main(args):
     preparation(args)
 
     ae_model = get_cuda(make_model(d_vocab=args.vocab_size,
-                                   N=args.num_layers_AE,
-                                   d_model=args.transformer_model_size,
-                                   latent_size=args.latent_size,
-                                   d_ff=args.transformer_ff_size,
+                                    N=args.num_layers_AE,
+                                    d_model=args.transformer_model_size,
+                                    latent_size=args.latent_size,
+                                    d_ff=args.transformer_ff_size,
     ))
     dis_model = get_cuda(Classifier(latent_size=args.latent_size, output_size=args.label_size))
 
@@ -253,7 +250,8 @@ def main(args):
     else:
         train_iters(args, ae_model, dis_model)
 
-    eval_iters(ae_model, dis_model)
+    if os.path.exists(args.test_data_file) :
+        eval_iters(args, ae_model, dis_model)
 
     print("Done!")
 
