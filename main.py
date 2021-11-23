@@ -1,25 +1,13 @@
 # coding: utf-8
-# requirements: pytorch: 0.4
-# Author: Ke Wang
-# Contact: wangke17[AT]pku.edu.cn
 import time
 import argparse
-import math
 import os
 import torch
 import torch.nn as nn
-from torch import optim
-import numpy
-import matplotlib
-from matplotlib import pyplot as plt
-
-#
-from utils import bool_flag
-
-# Import your model files.
+ 
 from model import make_model, Classifier, NoamOpt, LabelSmoothing, fgim_attack
-from data import prepare_data, non_pair_data_loader, get_cuda, pad_batch_seuqences, id2text_sentence,\
-    to_var, calc_bleu, load_human_answer
+from data import prepare_data, non_pair_data_loader, get_cuda, id2text_sentence, to_var, load_human_answer
+from utils import bool_flag
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -108,7 +96,7 @@ def train_iters(args, ae_model, dis_model):
             loss_dis.backward()
             dis_optimizer.step()
 
-            if it % 200 == 0:
+            if it % args.log_interval == 0:
                 add_log(
                     '| epoch {:3d} | {:5d}/{:5d} batches | rec loss {:5.4f} | dis loss {:5.4f} |'.format(
                         epoch, it, train_data_loader.num_batch, loss_rec, loss_dis))
@@ -117,6 +105,7 @@ def train_iters(args, ae_model, dis_model):
                 generator_text = ae_model.greedy_decode(latent,
                                                         max_len=args.max_sequence_length,
                                                         start_id=args.id_bos)
+                # batch_sentences
                 print(id2text_sentence(generator_text[0], args.id_to_word))
 
         add_log(
@@ -125,8 +114,6 @@ def train_iters(args, ae_model, dis_model):
         # Save model
         torch.save(ae_model.state_dict(), args.current_save_path + 'ae_model_params.pkl')
         torch.save(dis_model.state_dict(), args.current_save_path + 'dis_model_params.pkl')
-    return
-
 
 def eval_iters(args, ae_model, dis_model):
     eval_data_loader = non_pair_data_loader(
@@ -136,8 +123,11 @@ def eval_iters(args, ae_model, dis_model):
     )
     file_list = [args.test_data_file]
     eval_data_loader.create_batches(args, file_list, if_shuffle=False)
-    gold_ans = load_human_answer(args.data_path)
-    assert len(gold_ans) == eval_data_loader.num_batch
+    if args.references_files :
+        gold_ans = load_human_answer(args.references_files, args.text_column)
+        assert len(gold_ans) == eval_data_loader.num_batch
+    else :
+        gold_ans = [None]*eval_data_loader.num_batch
 
     add_log("Start eval process.")
     ae_model.eval()
@@ -166,8 +156,6 @@ def eval_iters(args, ae_model, dis_model):
         modify_text = fgim_attack(dis_model, latent, target, ae_model, args.max_sequence_length, args.id_bos,
                                         id2text_sentence, args.id_to_word, gold_ans[it])
         add_output(modify_text)
-    return
-
 
 def get_parser():
     """
@@ -189,11 +177,11 @@ def get_parser():
     #  File parameters
     ######################################################################################
     parser.add_argument("--dump_path", type=str, default="save", help="Experiment dump path")
-    
     parser.add_argument('--data_path', type=str, default='', help='')
     parser.add_argument('--train_data_file', type=str, default='', help='')
     parser.add_argument('--val_data_file', type=str, default='', help='')
     parser.add_argument('--test_data_file', type=str, default='', help='')
+    parser.add_argument('--references_files', type=str, default='', help='')
     parser.add_argument('--word_to_id_file', type=str, default='', help='')
     parser.add_argument("-dc", "--data_columns", type=str, default="c1,c2,..", help="")
 
@@ -217,14 +205,16 @@ def get_parser():
     ######################################################################################
     # Training
     ###################################################################################### 
-    parser.add_argument('--max_epochs', type=int, default=10)   
+    parser.add_argument('--max_epochs', type=int, default=10) 
+    parser.add_argument('--log_interval', type=int, default=100)  
+    parser.add_argument('--eval_only', type=bool_flag, default=False)  
     
     ######################################################################################
     # Checkpoint
     ######################################################################################
     parser.add_argument('--if_load_from_checkpoint', type=bool_flag, default=False)
-    if parser.parse_known_args()[0].if_load_from_checkpoint:
-        parser.add_argument('--checkpoint_name', type=str, default='', help='1557667911, ...')
+    #if parser.parse_known_args()[0].if_load_from_checkpoint:
+    parser.add_argument('--checkpoint_name', type=str, default='', help='1557667911, ...')
 
     ######################################################################################
     #  End of hyper parameters
@@ -247,7 +237,8 @@ def main(args):
         # Load models' params from checkpoint
         ae_model.load_state_dict(torch.load(args.current_save_path + 'ae_model_params.pkl'))
         dis_model.load_state_dict(torch.load(args.current_save_path + 'dis_model_params.pkl'))
-    else:
+    
+    if not args.eval_only:
         train_iters(args, ae_model, dis_model)
 
     if os.path.exists(args.test_data_file) :
@@ -268,9 +259,23 @@ if __name__ == '__main__':
     assert len(data_columns) == 2
     args.text_column = data_columns[0]
     args.label_column = data_columns[1]
-    # TODO
+    
+    references_files = args.references_files.strip().strip('"')
+    if references_files != "" :
+        references_files = references_files.split(",")
+        #assert all([os.path.isfile(f) or f==""  for f in references_files])
+        #args.references_files = references_files
+        args.references_files = []
+        for f in references_files :
+            assert os.path.isfile(f) or f==""
+            if f != "":
+                args.references_files.append(f)
+    else :
+        args.references_files = []
 
+    if args.eval_only:
+        assert os.path.exists(args.test_data_file)
+        assert args.if_load_from_checkpoint
+        
     # run the experiments
     main(args)
-
-

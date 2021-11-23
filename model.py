@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from torch import optim
+from torch import FloatStorage, optim
 import torch.nn.functional as F
 import math, copy, time
 import torch.nn.utils.rnn as rnn_utils
@@ -370,7 +370,7 @@ class NoamOpt:
 
 def get_std_opt(model):
     return NoamOpt(model.src_embed[0].d_model, 2, 4000,
-                   torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
+                    torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
 
 
 class LabelSmoothing(nn.Module):
@@ -421,54 +421,75 @@ class Classifier(nn.Module):
 
 
 def fgim_attack(model, origin_data, target, ae_model, max_sequence_length, id_bos,
-                id2text_sentence, id_to_word, gold_ans):
+                id2text_sentence, id_to_word, gold_ans = None):
     """Fast Gradient Iterative Methods"""
 
     dis_criterion = nn.BCELoss(size_average=True)
-
-    gold_text = id2text_sentence(gold_ans, id_to_word)
-    print("gold:", gold_text)
-    # while True:
+    t = 0.001 # Threshold
+    lambda_ = 0.9 # Decay coefficient
+    max_iter_per_epsilon=20
+    
+    if gold_ans is not None :
+        gold_text = id2text_sentence(gold_ans, id_to_word)
+        print("gold:", gold_text)
+        
+    flag = False
     for epsilon in [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]:
-        it = 0
-        data = origin_data
+        print("---------- epsilon:", epsilon)
+        generator_id = ae_model.greedy_decode(origin_data, max_len=max_sequence_length, start_id=id_bos)
+        generator_text = id2text_sentence(generator_id[0], id_to_word)
+        print("z:", generator_text)
+        
+        data = to_var(origin_data.clone())  # (batch_size, seq_length, latent_size)
+        b = True
+        if b :
+            data.requires_grad = True
+            output = model.forward(data)
+            loss = dis_criterion(output, target)
+            model.zero_grad()
+            loss.backward()
+            data_grad = data.grad.data
+            data = data - epsilon * data_grad
+        else :
+            data = origin_data
+            
+        it = 0 
         while True:
-            print("epsilon:", epsilon)
-
+            if torch.cdist(output, target) < t :
+                flag = True
+                break
+    
             data = to_var(data.clone())  # (batch_size, seq_length, latent_size)
             # Set requires_grad attribute of tensor. Important for Attack
             data.requires_grad = True
             output = model.forward(data)
             # Calculate gradients of model in backward pass
-            # print("target", target[0].item())
-            # print("output", output[0].item())
             loss = dis_criterion(output, target)
             model.zero_grad()
             # dis_optimizer.zero_grad()
             loss.backward()
             data_grad = data.grad.data
-            # print("data_grad")
-            # print(data_grad)
             data = data - epsilon * data_grad
-            # print("epsilon * data_grad")
-            # print((epsilon * data_grad))
-            # print("data")
-            # print(data)
-            # print("perturbed_data")
-            # print(perturbed_data)
             it += 1
             # data = perturbed_data
-            epsilon = epsilon * 0.9
-
-            generator_id = ae_model.greedy_decode(data,
-                                                    max_len=max_sequence_length,
-                                                    start_id=id_bos)
-            generator_text = id2text_sentence(generator_id[0], id_to_word)
-            print("| It {:2d} | dis model pred {:5.4f} |".format(it, output[0].item()))
-            print(generator_text)
-            if it >= 5:
+            epsilon = epsilon * lambda_
+            if False :
+                generator_id = ae_model.greedy_decode(data,
+                                                        max_len=max_sequence_length,
+                                                        start_id=id_bos)
+                generator_text = id2text_sentence(generator_id[0], id_to_word)
+                print("| It {:2d} | dis model pred {:5.4f} |".format(it, output[0].item()))
+                print(generator_text)
+            if it > max_iter_per_epsilon:
                 break
-    return
+        
+        generator_id = ae_model.greedy_decode(data, max_len=max_sequence_length, start_id=id_bos)
+        generator_text = id2text_sentence(generator_id[0], id_to_word)
+        print("|dis model pred {:5.4f} |".format(output[0].item()))
+        print("z*", generator_text)
+        print()
+        if b :
+            return generator_text
 
 
 

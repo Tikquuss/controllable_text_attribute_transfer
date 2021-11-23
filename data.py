@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import random
 import torch
 from torch.autograd import Variable
@@ -13,8 +12,7 @@ def calc_bleu(reference, hypothesis):
     weights = (0.25, 0.25, 0.25, 0.25)
     return nltk.translate.bleu_score.sentence_bleu(reference, hypothesis, weights,
                                                     smoothing_function=SmoothingFunction().method1)
-
-
+    
 def load_human_answer(references_files, text_column):
     ans = []
     for file_item in references_files:
@@ -22,7 +20,6 @@ def load_human_answer(references_files, text_column):
             df = pd.read_csv(file_item)
         except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
             df = pd.read_csv(file_item, lineterminator='\n')
-        #for row in df.iterrows() : 
         for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
             text = row[1][text_column].strip()
             text = text.split('\t')[1].split()
@@ -60,7 +57,6 @@ def get_cuda(tensor):
     #     tensor = tensor
     return tensor.cuda()
 
-
 def load_word_dict_info(word_dict_file, max_num):
     id_to_word = []
     with open(word_dict_file, 'r') as f:
@@ -76,7 +72,6 @@ def load_word_dict_info(word_dict_file, max_num):
             id_to_word.append(word)
     print("Load word-dict with %d size and %d max_num." % (len(id_to_word), max_num))
     return id_to_word, len(id_to_word)
-
 
 def load_data(file_, text_column):
     token_stream = []

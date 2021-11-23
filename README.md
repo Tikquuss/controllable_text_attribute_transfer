@@ -1,4 +1,4 @@
-Controllable Unsupervised Text Attribute Transfer via Editing Entangled Latent Representation
+# Controllable Unsupervised Text Attribute Transfer via Editing Entangled Latent Representation
 ```
 @misc{wang2019controllable,
       title={Controllable Unsupervised Text Attribute Transfer via Editing Entangled Latent Representation}, 
@@ -9,3 +9,46 @@ Controllable Unsupervised Text Attribute Transfer via Editing Entangled Latent R
       primaryClass={cs.CL}
 }
 ```
+
+## librairies
+```bash
+import nltk
+nltk.download('punkt')
+```
+
+## Data preprocessing
+```bash
+datapath=/content/imdb
+references_files=""
+data_columns=review,sentiment
+save_to=/content
+
+! python preprocessed_data.py -f ${datapath}/data_train.csv,${datapath}/data_val.csv,${datapath}/data_test.csv -rf $references_files -dc $data_columns  -st $save_to
+```
+
+## Rename files
+```bash
+for data_type in train test val; do
+    echo ${data_type} 
+    mv ${save_to}/data_${data_type}_csv.csv ${save_to}/data_${data_type}.csv
+done
+```
+
+## Train on train set (+ dev set if available) 
+```bash
+chmod +x main.sh
+dump_path=/content
+data_columns=review,sentiment
+. main.sh $dump_path $data_columns
+```
+
+## Evaluate on test set
+```bash
+if_load_from_checkpoint=True
+checkpoint_name=1637637962
+eval_only=True
+! . main.sh $dump_path $data_columns $if_load_from_checkpoint $checkpoint_name $eval_only
+```
+
+# References
+- https://github.com/Nrgeup/controllable-text-attribute-transfer
