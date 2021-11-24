@@ -12,7 +12,6 @@ def calc_bleu(reference, hypothesis):
     weights = (0.25, 0.25, 0.25, 0.25)
     return nltk.translate.bleu_score.sentence_bleu(reference, hypothesis, weights,
                                                     smoothing_function=SmoothingFunction().method1)
-    
 def load_human_answer(references_files, text_column):
     ans = []
     for file_item in references_files:
@@ -20,20 +19,18 @@ def load_human_answer(references_files, text_column):
             df = pd.read_csv(file_item)
         except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
             df = pd.read_csv(file_item, lineterminator='\n')
-        for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
+        for row in tqdm.tqdm(list(df.iterrows()), desc="%s" % file_item):
             text = row[1][text_column].strip()
             text = text.split('\t')[1].split()
             parse_line = [int(x) for x in text]
             ans.append(parse_line)
     return ans
 
-
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
     subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
     return torch.from_numpy(subsequent_mask) == 0
-
 
 def id2text_sentence(sen_id, id_to_word):
     sen_text = []
@@ -80,7 +77,7 @@ def load_data(file_, text_column):
     except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
         df = pd.read_csv(file_, lineterminator='\n')
     #for row in df.iterrows() : 
-    for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_):
+    for row in tqdm.tqdm(list(df.iterrows()), desc="%s" % file_):
         text = row[1][text_column].strip()
         text = text.split()
         parse_line = [int(x) for x in text]
@@ -88,12 +85,10 @@ def load_data(file_, text_column):
 
     return token_stream
 
-
 def prepare_data(args):
     print("prepare data ...")
     id_to_word, vocab_size = load_word_dict_info(args.word_to_id_file, args.word_dict_max_num)
     return id_to_word, vocab_size
-
 
 def pad_batch_seuqences(origin_seq, sos_id, eos_id, unk_id, max_seq_length, vocab_size):
     '''padding with 0, mask id_num > vocab_size with unk_id.'''
@@ -156,7 +151,7 @@ class non_pair_data_loader():
             except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
                 df = pd.read_csv(file_item, lineterminator='\n')
             #for row in df.iterrows() : 
-            for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
+            for row in tqdm.tqdm(list(df.iterrows()), desc="%s" % file_item):
                 row = row[1]
                 line = row[text_column].strip()
                 line = line.split()
@@ -292,6 +287,3 @@ if __name__ == '__main__':
             print(batch.trg_y)
             print(batch.trg_mask)
             input("=====")
-
-
-

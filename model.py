@@ -5,8 +5,13 @@ from torch import FloatStorage, optim
 import torch.nn.functional as F
 import math, copy, time
 import torch.nn.utils.rnn as rnn_utils
-from data import get_cuda, to_var, calc_bleu
 import numpy as np
+import tqdm
+from typing import Callable
+import os
+from data import get_cuda, to_var, calc_bleu, id2text_sentence
+from optim import get_optimizer
+from utils import bool_flag, add_log, add_output
 
 
 def clones(module, N):
@@ -24,7 +29,6 @@ def attention(query, key, value, mask=None, dropout=None):
     if dropout is not None:
         p_attn = dropout(p_attn)
     return torch.matmul(p_attn, value), p_attn
-
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
@@ -140,11 +144,13 @@ class Encoder(nn.Module):
         self.layers = clones(layer, N)
         self.norm = LayerNorm(layer.size)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask, return_intermediate=False):
         """Pass the input (and mask) through each layer in turn."""
+        z = []
         for layer in self.layers:
             x = layer(x, mask)
-        return self.norm(x)
+            z.append(x)
+        return (self.norm(x), z) if return_intermediate else self.norm(x) 
 
 
 class EncoderLayer(nn.Module):
@@ -170,10 +176,12 @@ class Decoder(nn.Module):
         self.layers = clones(layer, N)
         self.norm = LayerNorm(layer.size)
 
-    def forward(self, x, memory, src_mask, tgt_mask):
+    def forward(self, x, memory, src_mask, tgt_mask, return_intermediate=False):
+        z = []
         for layer in self.layers:
             x = layer(x, memory, src_mask, tgt_mask)
-        return self.norm(x)
+            z.append(x)
+        return (self.norm(x), z) if return_intermediate else self.norm(x) 
 
 
 class DecoderLayer(nn.Module):
@@ -225,11 +233,14 @@ class EncoderDecoder(nn.Module):
         # self.memory2latent = nn.Linear(self.model_size, self.latent_size)
         # self.latent2memory = nn.Linear(self.latent_size, self.model_size)
 
-    def forward(self, src, tgt, src_mask, tgt_mask):
+    def forward(self, src, tgt, src_mask, tgt_mask, return_intermediate=False):
         """
         Take in and process masked src and target sequences.
         """
-        latent = self.encode(src, src_mask)  # (batch_size, max_src_seq, d_model)
+        if return_intermediate :
+            latent, z = self.encode(src, src_mask, return_intermediate)  # (batch_size, max_src_seq, d_model)
+        else :
+            latent = self.encode(src, src_mask)  # (batch_size, max_src_seq, d_model)
         latent = self.sigmoid(latent)
         # memory = self.position_layer(memory)
 
@@ -242,12 +253,13 @@ class EncoderDecoder(nn.Module):
 
         logit = self.decode(latent.unsqueeze(1), tgt, tgt_mask)  # (batch_size, max_tgt_seq, d_model)
         prob = self.generator(logit)  # (batch_size, max_seq, vocab_size)
-        return latent, prob
+        if return_intermediate :
+            return latent, prob, z
+        else :
+            return latent, prob
 
-
-
-    def encode(self, src, src_mask):
-        return self.encoder(self.src_embed(src), src_mask)
+    def encode(self, src, src_mask, return_intermediate=False):
+        return self.encoder(self.src_embed(src), src_mask, return_intermediate)
 
     def decode(self, memory, tgt, tgt_mask):
         # memory: (batch_size, 1, d_model)
@@ -309,7 +321,16 @@ def make_model(d_vocab, N, d_model, latent_size, d_ff=1024, h=4, dropout=0.1):
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
     return model
-
+        
+def make_deb(N, d_model, d_ff=1024, h=4, dropout=0.1) :
+    c = copy.deepcopy
+    attn = MultiHeadedAttention(h, d_model)
+    ff = PositionwiseFeedForward(d_model, d_ff, dropout)
+    deb = Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N)
+    for p in deb.parameters():
+        if p.dim() > 1:
+            nn.init.xavier_uniform_(p)
+    return deb
 
 def subsequent_mask(size):
     "Mask out subsequent positions."
@@ -337,41 +358,6 @@ class Batch:
         tgt_mask = tgt_mask & Variable(
             subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data))
         return tgt_mask
-
-
-class NoamOpt:
-    "Optim wrapper that implements rate."
-
-    def __init__(self, model_size, factor, warmup, optimizer):
-        self.optimizer = optimizer
-        self._step = 0
-        self.warmup = warmup
-        self.factor = factor
-        self.model_size = model_size
-        self._rate = 0
-
-    def step(self):
-        "Update parameters and rate"
-        self._step += 1
-        rate = self.rate()
-        for p in self.optimizer.param_groups:
-            p['lr'] = rate
-        self._rate = rate
-        self.optimizer.step()
-
-    def rate(self, step=None):
-        "Implement `lrate` above"
-        if step is None:
-            step = self._step
-        return self.factor * \
-               (self.model_size ** (-0.5) *
-                min(step ** (-0.5), step * self.warmup ** (-1.5)))
-
-
-def get_std_opt(model):
-    return NoamOpt(model.src_embed[0].d_model, 2, 4000,
-                    torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
-
 
 class LabelSmoothing(nn.Module):
     """Implement label smoothing."""
@@ -418,7 +404,6 @@ class Classifier(nn.Module):
 
         # out = F.log_softmax(out, dim=1)
         return out  # batch_size * label_size
-
 
 def fgim_attack(model, origin_data, target, ae_model, max_sequence_length, id_bos,
                 id2text_sentence, id_to_word, gold_ans = None):
@@ -488,10 +473,157 @@ def fgim_attack(model, origin_data, target, ae_model, max_sequence_length, id_bo
         print("|dis model pred {:5.4f} |".format(output[0].item()))
         print("z*", generator_text)
         print()
-        if b :
+        if flag :
             return generator_text
 
+def fgim(data_loader, args, ae_model, c_theta, id2text_sentence : Callable = None, gold_ans = None) :
+    """
+    Input: 
+        Original latent representation z : (n_batch, batch_size, seq_length, latent_size)
+        Well-trained attribute classifier C_θ
+        Target attribute y
+        A set of weights w = {w_i}
+        Decay coefficient λ 
+        Threshold t
+        
+    Output: An optimal modified latent representation z'
+    """
+    w = args.w
+    lambda_ = args.lambda_
+    t = args.threshold
+    max_iter_per_epsilon = args.max_iter_per_epsilon
+    max_sequence_length = args.max_sequence_length
+    id_bos = args.id_bos
+    id_to_word = args.id_to_word
+    limit_batches = args.limit_batches
+        
+    text_z_prime = {}
+    text_z_prime = {"source" : [], "origin_labels" : [], "before" : [], "after" : [], "change" : [], "pred_label" : []}
+    if gold_ans is not None :
+        text_z_prime["gold_ans"] = []
+    z_prime = []
+    
+    dis_criterion = nn.BCELoss(size_average=True)
+    n_batches = 0
+    for it in tqdm.tqdm(list(range(data_loader.num_batch)), desc="FGIM"):
+        if gold_ans is not None :
+            text_z_prime["gold_ans"].append(gold_ans[it])
+        
+        _, tensor_labels, \
+        tensor_src, tensor_src_mask, tensor_tgt, tensor_tgt_y, \
+        tensor_tgt_mask, _ = data_loader.next_batch()
+        # only on negative example
+        negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
+        tensor_labels = tensor_labels[negative_examples]
+        tensor_src = tensor_src[negative_examples]
+        tensor_src_mask = tensor_src_mask[negative_examples] 
+        tensor_tgt_y = tensor_tgt_y[negative_examples]  
+        tensor_tgt = tensor_tgt[negative_examples]
+        tensor_tgt_mask = tensor_tgt_mask[negative_examples]
+        #if gold_ans is not None :
+        #    text_z_prime["gold_ans"][-1] = text_z_prime["gold_ans"][-1][negative_examples]
 
+        #print("------------%d------------" % it)
+        if negative_examples.any():
+            text_z_prime["source"].append([id2text_sentence(t, args.id_to_word) for t in tensor_tgt_y])
+            text_z_prime["origin_labels"].append(tensor_labels.cpu().numpy())
+
+            origin_data, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_tgt_mask)
+
+            # Define target label
+            y_prime = 1.0 - (tensor_labels > 0.5).float()
+
+            ############################### FGIM ######################################################
+            generator_id = ae_model.greedy_decode(origin_data, max_len=max_sequence_length, start_id=id_bos)
+            generator_text = [id2text_sentence(gid, id_to_word) for gid in generator_id]
+            text_z_prime["before"].append(generator_text)
+            
+            flag = False
+            for w_i in w:
+                #print("---------- w_i:", w_i)
+                data = to_var(origin_data.clone())  # (batch_size, seq_length, latent_size)
+                b = True
+                if b :
+                    data.requires_grad = True
+                    output = c_theta.forward(data)
+                    loss = dis_criterion(output, y_prime)
+                    c_theta.zero_grad()
+                    loss.backward()
+                    data = data - w_i * data.grad.data
+                else :
+                    data = origin_data
+                    output = c_theta.forward(data)
+                    
+                it = 0 
+                while True:
+                    #if torch.cdist(output, y_prime) < t :
+                    #if torch.sum((output - y_prime)**2, dim=1).sqrt().mean() < t :
+                    if torch.sum((output - y_prime).abs(), dim=1).mean() < t :
+                        flag = True
+                        break
+            
+                    data = to_var(data.clone())  # (batch_size, seq_length, latent_size)
+                    # Set requires_grad attribute of tensor. Important for Attack
+                    data.requires_grad = True
+                    output = c_theta.forward(data)
+                    # Calculate gradients of model in backward pass
+                    loss = dis_criterion(output, y_prime)
+                    c_theta.zero_grad()
+                    # dis_optimizer.zero_grad()
+                    loss.backward()
+                    data = data - w_i * data.grad.data
+                    it += 1
+                    # data = perturbed_data
+                    w_i = lambda_ * w_i
+                    if False :
+                        if text_gen_params is not None :
+                            generator_id = ae_model.greedy_decode(data,
+                                                                    max_len=max_sequence_length,
+                                                                    start_id=id_bos)
+                            generator_text = id2text_sentence(generator_id[0], id_to_word)
+                            print("| It {:2d} | dis model pred {:5.4f} |".format(it, output[0].item()))
+                            print(generator_text)
+                    if it > max_iter_per_epsilon:
+                        break
+                
+                if flag :    
+                    z_prime.append(data)
+                    generator_id = ae_model.greedy_decode(data, max_len=max_sequence_length, start_id=id_bos)
+                    generator_text = [id2text_sentence(gid, id_to_word) for gid in generator_id]
+                    text_z_prime["after"].append(generator_text)
+                    text_z_prime["change"].append([True]*len(output))
+                    text_z_prime["pred_label"].append([o.item() for o in output])
+                    break
+            
+            if not flag : # cannot debiaising
+                z_prime.append(origin_data)
+                text_z_prime["after"].append(text_z_prime["before"][-1])
+                text_z_prime["change"].append([False]*len(y_prime))
+                text_z_prime["pred_label"].append([o.item() for o in y_prime])
+            
+            n_batches += 1
+            if n_batches > limit_batches:
+                break        
+    return z_prime, text_z_prime
+
+class LossSedat:
+    """"""
+    def __init__(self,  penalty="lasso"):
+        assert penalty in ["lasso", "ridge"]
+        #self.penalty = penalty
+        if penalty == "lasso" :
+            self.criterion = F.l1_loss
+        else :
+            self.criterion = F.mse_loss
+
+    def __call__(self, z, z_prime, is_list = True):
+        """
+        z, z_prime : (n_layers, batch_size, seq_length, latent_size) if is_list, else (batch_size, seq_length, latent_size)
+        """
+        if is_list:
+            return torch.sum([self.criterion(z_i, z_prime_i) for z_i, z_prime_i in zip(z, z_prime)])
+        else :
+            return self.criterion(z, z_prime)
 
 if __name__ == '__main__':
     # plt.figure(figsize=(15, 5))
@@ -504,5 +636,3 @@ if __name__ == '__main__':
     # Small example model.
     # tmp_model = make_model(10, 10, 2)
     pass
-
-

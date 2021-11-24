@@ -23,7 +23,7 @@ def buid_dict_file(file_list, save_to, text_column, references_files = []):
         except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
             df = pd.read_csv(file_item, lineterminator='\n')
         #for row in df.iterrows() : 
-        for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
+        for row in tqdm.tqdm(list(df.iterrows()), desc="%s" % file_item):
             text = row[1][text_column].strip()
             word_list = nltk.word_tokenize(text)
             for word in word_list:
@@ -36,7 +36,7 @@ def buid_dict_file(file_list, save_to, text_column, references_files = []):
         except ParserError : # https://stackoverflow.com/questions/33998740/error-in-reading-a-csv-file-in-pandascparsererror-error-tokenizing-data-c-err
             df = pd.read_csv(file_item, lineterminator='\n')
         #for row in df.iterrows() : 
-        for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
+        for row in tqdm.tqdm(list(df.iterrows()), desc="%s" % file_item):
             text = row[1][text_column].strip()
             item1, item2 = text.split('\t')
             for item in [item1, item2]:
@@ -117,7 +117,7 @@ def build_id_file(file_list, dict_file, data_columns, references_files = [], sav
 
         id_file_data = []
         #for row in df.iterrows() : 
-        for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
+        for row in tqdm.tqdm(list(df.iterrows()), desc="%s" % file_item):
             text = row[1][text_column].strip()
             word_list = nltk.word_tokenize(text)
             id_list = []
@@ -139,7 +139,7 @@ def build_id_file(file_list, dict_file, data_columns, references_files = [], sav
             df = pd.read_csv(file_item, lineterminator='\n')
         id_file_data = []
         #for row in df.iterrows() : 
-        for row in tqdm.tqdm(df.iterrows(), desc="%s" % file_item):
+        for row in tqdm.tqdm(list(df.iterrows()), desc="%s" % file_item):
             text = row[1][text_column].strip()
             item1, item2 = text.split('\t')
             # 1

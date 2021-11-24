@@ -13,6 +13,8 @@ batch_size=128
 if_load_from_checkpoint=${3-False}
 checkpoint_name=${4-None}
 eval_only=${5-False}
+sedat=False
+task=pretrain
 
 if [ $if_load_from_checkpoint = "True" ]; then
     if [ $checkpoint_name = "None" ]; then
@@ -40,6 +42,8 @@ python3 main.py \
 		--num_layers_AE 2 \
 		--transformer_model_size 256 \
 		--transformer_ff_size 1024 \
+		--n_heads 4 \
+		--attention_dropout 0.1 \
 		--latent_size 256 \
 		--word_dropout 1.0 \
 		--embedding_dropout 0.5 \
@@ -48,5 +52,17 @@ python3 main.py \
 		--max_epochs 10 \
 		--log_interval 100 \
 		--eval_only $eval_only \
+		--sedat $sedat \
+		--positive_label 0 \
+		--w 2.0,3.0,4.0,5.0,6.0,7.0,8.0 \
+		--lambda_ 0.9 \
+		--threshold 0.001 \
+		--max_iter_per_epsilon 100 \
+		--limit_batches -1 \
+		--task $task \
+		--ae_noamopt factor_ae=1,warmup_ae=200 \
+		--ae_optimizer adam,lr=0,beta1=0.9,beta2=0.98,eps=0.000000001 \
+		--dis_optimizer adam,lr=0.0001 \
+		--deb_optimizer adam,lr=0.0001 \
 		--if_load_from_checkpoint $if_load_from_checkpoint \
 		--checkpoint_name $checkpoint_name
