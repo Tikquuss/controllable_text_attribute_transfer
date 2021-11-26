@@ -1,23 +1,16 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from torch import FloatStorage, optim
 import torch.nn.functional as F
-import math, copy, time
-import torch.nn.utils.rnn as rnn_utils
+import math, copy
 import numpy as np
 import tqdm
-from typing import Callable
-import os
-from data import get_cuda, to_var, calc_bleu, id2text_sentence
-from optim import get_optimizer
+from data import to_var, calc_bleu, id2text_sentence
 from utils import bool_flag, add_log, add_output
-
 
 def clones(module, N):
     """Produce N identical layers."""
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
-
 
 def attention(query, key, value, mask=None, dropout=None):
     """Compute 'Scaled Dot Product Attention' """
@@ -51,15 +44,13 @@ class MultiHeadedAttention(nn.Module):
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
             [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-             for l, x in zip(self.linears, (query, key, value))]
+                for l, x in zip(self.linears, (query, key, value))]
 
         # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn = attention(query, key, value, mask=mask,
-                                 dropout=self.dropout)
+        x, self.attn = attention(query, key, value, mask=mask, dropout=self.dropout)
 
         # 3) "Concat" using a view and apply a final linear.
-        x = x.transpose(1, 2).contiguous() \
-            .view(nbatches, -1, self.h * self.d_k)
+        x = x.transpose(1, 2).contiguous().view(nbatches, -1, self.h * self.d_k)
         return self.linears[-1](x)
 
 
@@ -74,7 +65,6 @@ class PositionwiseFeedForward(nn.Module):
     def forward(self, x):
         return self.w_2(self.dropout(F.relu(self.w_1(x))))
 
-
 class PositionalEncoding(nn.Module):
     """Implement the PE function."""
     def __init__(self, d_model, dropout, max_len=5000):
@@ -84,18 +74,15 @@ class PositionalEncoding(nn.Module):
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) *
-                             -(math.log(10000.0) / d_model))
+        div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + Variable(self.pe[:, :x.size(1)],
-                         requires_grad=False)
+        x = x + Variable(self.pe[:, :x.size(1)], requires_grad=False)
         return self.dropout(x)
-
 
 class LayerNorm(nn.Module):
     """Construct a layernorm module (See citation for details)."""
@@ -109,7 +96,6 @@ class LayerNorm(nn.Module):
         mean = x.mean(-1, keepdim=True)
         std = x.std(-1, keepdim=True)
         return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
-
 
 class SublayerConnection(nn.Module):
     """
@@ -125,7 +111,6 @@ class SublayerConnection(nn.Module):
         """Apply residual connection to any sublayer with the same size."""
         return x + self.dropout(sublayer(self.norm(x)))
 
-
 class Embeddings(nn.Module):
     def __init__(self, d_model, vocab):
         super(Embeddings, self).__init__()
@@ -134,7 +119,6 @@ class Embeddings(nn.Module):
 
     def forward(self, x):
         return self.lut(x) * math.sqrt(self.d_model)
-
 
 ################ Encoder ################
 class Encoder(nn.Module):
@@ -183,7 +167,6 @@ class Decoder(nn.Module):
             z.append(x)
         return (self.norm(x), z) if return_intermediate else self.norm(x) 
 
-
 class DecoderLayer(nn.Module):
     """Decoder is made of self-attn, src-attn, and feed forward (defined below)"""
 
@@ -202,7 +185,6 @@ class DecoderLayer(nn.Module):
         x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask))
         return self.sublayer[2](x, self.feed_forward)
 
-
 ################ Generator ################
 class Generator(nn.Module):
     """Define standard linear + softmax generation step."""
@@ -212,7 +194,6 @@ class Generator(nn.Module):
 
     def forward(self, x):
         return F.log_softmax(self.proj(x), dim=-1)
-
 
 class EncoderDecoder(nn.Module):
     """
@@ -263,7 +244,7 @@ class EncoderDecoder(nn.Module):
 
     def decode(self, memory, tgt, tgt_mask):
         # memory: (batch_size, 1, d_model)
-        src_mask = get_cuda(torch.ones(memory.size(0), 1, 1).long())
+        src_mask = torch.ones(memory.size(0), 1, 1).long().to(memory.device)
         # print("src_mask here", src_mask)
         # print("src_mask", src_mask.size())
         return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask)
@@ -277,7 +258,7 @@ class EncoderDecoder(nn.Module):
 
         # memory = self.latent2memory(latent)
 
-        ys = get_cuda(torch.ones(batch_size, 1).fill_(start_id).long())  # (batch_size, 1)
+        ys = torch.ones(batch_size, 1).fill_(start_id).long().to(latent.device)  # (batch_size, 1)
         for i in range(max_len - 1):
             # input("==========")
             # print("="*10, i)
@@ -323,6 +304,7 @@ def make_model(d_vocab, N, d_model, latent_size, d_ff=1024, h=4, dropout=0.1):
     return model
         
 def make_deb(N, d_model, d_ff=1024, h=4, dropout=0.1) :
+    """debiaser"""
     c = copy.deepcopy
     attn = MultiHeadedAttention(h, d_model)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
@@ -382,7 +364,6 @@ class LabelSmoothing(nn.Module):
             true_dist.index_fill_(0, mask.squeeze(), 0.0)
         self.true_dist = true_dist
         return self.criterion(x, Variable(true_dist, requires_grad=False))
-
 
 class Classifier(nn.Module):
     def __init__(self, latent_size, output_size):
@@ -476,7 +457,7 @@ def fgim_attack(model, origin_data, target, ae_model, max_sequence_length, id_bo
         if flag :
             return generator_text
 
-def fgim(data_loader, args, ae_model, c_theta, id2text_sentence : Callable = None, gold_ans = None) :
+def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
     """
     Input: 
         Original latent representation z : (n_batch, batch_size, seq_length, latent_size)
@@ -514,12 +495,12 @@ def fgim(data_loader, args, ae_model, c_theta, id2text_sentence : Callable = Non
         tensor_tgt_mask, _ = data_loader.next_batch()
         # only on negative example
         negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
-        tensor_labels = tensor_labels[negative_examples]
-        tensor_src = tensor_src[negative_examples]
-        tensor_src_mask = tensor_src_mask[negative_examples] 
-        tensor_tgt_y = tensor_tgt_y[negative_examples]  
-        tensor_tgt = tensor_tgt[negative_examples]
-        tensor_tgt_mask = tensor_tgt_mask[negative_examples]
+        tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
+        tensor_src = tensor_src[negative_examples].squeeze(0) 
+        tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0)  
+        tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
+        tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
+        tensor_tgt_mask = tensor_tgt_mask[negative_examples].squeeze(0) 
         #if gold_ans is not None :
         #    text_z_prime["gold_ans"][-1] = text_z_prime["gold_ans"][-1][negative_examples]
 
@@ -621,7 +602,9 @@ class LossSedat:
         z, z_prime : (n_layers, batch_size, seq_length, latent_size) if is_list, else (batch_size, seq_length, latent_size)
         """
         if is_list:
-            return torch.sum([self.criterion(z_i, z_prime_i) for z_i, z_prime_i in zip(z, z_prime)])
+            # TODO
+            #return torch.sum([self.criterion(z_i, z_prime_i) for z_i, z_prime_i in zip(z, z_prime)])
+            return sum([self.criterion(z_i, z_prime_i) for z_i, z_prime_i in zip(z, z_prime)])
         else :
             return self.criterion(z, z_prime)
 

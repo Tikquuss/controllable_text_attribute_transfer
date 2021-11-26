@@ -49,10 +49,8 @@ def to_var(x, volatile=False):
     return Variable(x, volatile=volatile)
 
 
-def get_cuda(tensor):
-    # if torch.cuda.is_available():
-    #     tensor = tensor
-    return tensor.cuda()
+def get_cuda(tensor, args):
+    return tensor.to(args.device)
 
 def load_word_dict_info(word_dict_file, max_num):
     id_to_word = []
@@ -139,12 +137,14 @@ class non_pair_data_loader():
         self.max_sequence_length = max_sequence_length
         self.vocab_size = vocab_size
 
-
-    def create_batches(self, args, file_list, if_shuffle=True):
+    def create_batches(self, args, file_list, if_shuffle=True, n_samples = None):
         text_column = args.text_column
         label_column = args.label_column
         self.data_label_pairs = []
+        #n_samples = float("inf") if n_samples is None or n_samples < 0 else n_samples
+        #n = 0
         for _index in range(len(file_list)):
+        #    flag = False
             file_item = file_list[_index]
             try :
                 df = pd.read_csv(file_item)
@@ -158,9 +158,17 @@ class non_pair_data_loader():
                 parse_line = [int(x) for x in line]
                 label = [row[label_column]]
                 self.data_label_pairs.append([parse_line, label])
+        #        n = n + 1
+        #        if n > n_samples :
+        #            flag = True
+        #            break
+        #    if flag :
+        #        break
 
         if if_shuffle:
             random.shuffle(self.data_label_pairs)
+        
+        self.data_label_pairs = self.data_label_pairs[:n_samples]
 
         # Split batches
         if self.batch_size == None:
@@ -175,9 +183,9 @@ class non_pair_data_loader():
             batch_encoder_length, batch_decoder_length = pad_batch_seuqences(
                 item_sentences, self.id_bos, self.id_eos, self.id_unk, self.max_sequence_length, self.vocab_size,)
 
-            src = get_cuda(torch.tensor(batch_encoder_input, dtype=torch.long))
-            tgt = get_cuda(torch.tensor(batch_decoder_input, dtype=torch.long))
-            tgt_y = get_cuda(torch.tensor(batch_decoder_target, dtype=torch.long))
+            src = get_cuda(torch.tensor(batch_encoder_input, dtype=torch.long), args)
+            tgt = get_cuda(torch.tensor(batch_decoder_input, dtype=torch.long), args)
+            tgt_y = get_cuda(torch.tensor(batch_decoder_target, dtype=torch.long), args)
 
             src_mask = (src != 0).unsqueeze(-2)
             tgt_mask = self.make_std_mask(tgt, 0)
@@ -197,7 +205,7 @@ class non_pair_data_loader():
             # input("--------------")
 
             self.sentences_batches.append(item_sentences)
-            self.labels_batches.append(get_cuda(torch.tensor(item_labels, dtype=torch.float)))
+            self.labels_batches.append(get_cuda(torch.tensor(item_labels, dtype=torch.float), args))
             self.src_batches.append(src)
             self.tgt_batches.append(tgt)
             self.tgt_y_batches.append(tgt_y)
@@ -232,8 +240,8 @@ class non_pair_data_loader():
 
         self.pointer = (self.pointer + 1) % self.num_batch
         return this_batch_sentences, this_batch_labels, \
-               this_src, this_src_mask, this_tgt, this_tgt_y, \
-               this_tgt_mask, this_ntokens
+                this_src, this_src_mask, this_tgt, this_tgt_y, \
+                this_tgt_mask, this_ntokens
 
 
     def reset_pointer(self):
@@ -241,8 +249,6 @@ class non_pair_data_loader():
 
 
 if __name__ == '__main__':
-
-
 
     class Batch:
         "Object for holding a batch of data with mask during training."

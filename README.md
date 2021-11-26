@@ -23,13 +23,12 @@ references_files=""
 data_columns=review,sentiment
 save_to=/content
 
-! python preprocessed_data.py -f ${datapath}/data_train.csv,${datapath}/data_val.csv,${datapath}/data_test.csv -rf $references_files -dc $data_columns  -st $save_to
+python preprocessed_data.py -f ${datapath}/data_train.csv,${datapath}/data_val.csv,${datapath}/data_test.csv -rf $references_files -dc $data_columns  -st $save_to
 ```
 
 ## Rename files
 ```bash
-for data_type in train test val; do
-    echo ${data_type} 
+for data_type in train test val; do 
     mv ${save_to}/data_${data_type}_csv.csv ${save_to}/data_${data_type}.csv
 done
 ```
@@ -44,10 +43,9 @@ data_columns=review,sentiment
 
 ## Evaluate on test set
 ```bash
-if_load_from_checkpoint=True
-checkpoint_name=1637637962
+load_from_checkpoint=/content/pretrain/1
 eval_only=True
-! . main.sh $dump_path $data_columns $if_load_from_checkpoint $checkpoint_name $eval_only
+. main.sh $dump_path $data_columns $load_from_checkpoint $eval_only
 ```
 
 # References

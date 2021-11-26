@@ -10,15 +10,16 @@ references_files=,
 word_to_id_file=${data_path}/word_to_id.txt
 data_columns=$2
 batch_size=128
-if_load_from_checkpoint=${3-False}
-checkpoint_name=${4-None}
+load_from_checkpoint=${4-None}
 eval_only=${5-False}
 sedat=False
-task=pretrain
+task=${3-pretrain}
+#task=debias
+exp_id=1
 
-if [ $if_load_from_checkpoint = "True" ]; then
-    if [ $checkpoint_name = "None" ]; then
-        echo "Error, give a valid checkpoint name"
+if [ $eval_only = "True" ]; then
+    if [ ! -d $load_from_checkpoint ]; then
+        echo "Error, give a valid checkpoint path"
         exit
     fi
 fi
@@ -29,6 +30,8 @@ python3 main.py \
 		--id_bos 2 \
 		--id_eos 3 \
 		--dump_path $dump_path \
+		--exp_name $task \
+		--exp_id $exp_id \
 		--data_path $data_path \
 		--train_data_file $train_data_file \
 		--val_data_file $val_data_file \
@@ -60,9 +63,20 @@ python3 main.py \
 		--max_iter_per_epsilon 100 \
 		--limit_batches -1 \
 		--task $task \
+		--sedat_alpha_beta  1.0,1.0 \
+		--sedat_threshold 0.5 \
+		--sedat_only_on_negative_example True \
+		--penalty lasso \
+		--type_penalty group \
+		--detach_classif True \
+		--validation_metrics eval_ae_acc \
+		--stopping_criterion eval_ae_acc,10 \
+		--device cuda \
+		--train_n_samples -1 \
+		--valid_n_samples -1 \
+		--test_n_samples -1 \
 		--ae_noamopt factor_ae=1,warmup_ae=200 \
 		--ae_optimizer adam,lr=0,beta1=0.9,beta2=0.98,eps=0.000000001 \
 		--dis_optimizer adam,lr=0.0001 \
 		--deb_optimizer adam,lr=0.0001 \
-		--if_load_from_checkpoint $if_load_from_checkpoint \
-		--checkpoint_name $checkpoint_name
+		--load_from_checkpoint $load_from_checkpoint
