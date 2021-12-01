@@ -9,6 +9,7 @@ import pandas as pd
 from pandas.io.parsers import ParserError
 
 def calc_bleu(reference, hypothesis):
+    "https://www.nltk.org/_modules/nltk/translate/bleu_score.html"
     weights = (0.25, 0.25, 0.25, 0.25)
     return nltk.translate.bleu_score.sentence_bleu(reference, hypothesis, weights,
                                                     smoothing_function=SmoothingFunction().method1)
@@ -123,6 +124,7 @@ class non_pair_data_loader():
 
         self.src_batches = []
         self.src_mask_batches = []
+        self.src_attn_mask_batches = []
         self.tgt_batches = []
         self.tgt_y_batches = []
         self.tgt_mask_batches = []
@@ -187,9 +189,11 @@ class non_pair_data_loader():
             tgt = get_cuda(torch.tensor(batch_decoder_input, dtype=torch.long), args)
             tgt_y = get_cuda(torch.tensor(batch_decoder_target, dtype=torch.long), args)
 
-            src_mask = (src != 0).unsqueeze(-2)
-            tgt_mask = self.make_std_mask(tgt, 0)
-            ntokens = (tgt_y != 0).data.sum().float()
+            pad_id = 0
+            src_mask = (src != pad_id).unsqueeze(-2)
+            src_attn_mask = self.make_std_mask(src, pad_id)
+            tgt_mask = self.make_std_mask(tgt, pad_id)
+            ntokens = (tgt_y != pad_id).data.sum().float()
 
             # For debug
             # print("item_sentences", item_sentences)
@@ -210,6 +214,7 @@ class non_pair_data_loader():
             self.tgt_batches.append(tgt)
             self.tgt_y_batches.append(tgt_y)
             self.src_mask_batches.append(src_mask)
+            self.src_attn_mask_batches.append(src_attn_mask)
             self.tgt_mask_batches.append(tgt_mask)
             self.ntokens_batches.append(ntokens)
 
@@ -233,6 +238,7 @@ class non_pair_data_loader():
 
         this_src = self.src_batches[self.pointer]
         this_src_mask = self.src_mask_batches[self.pointer]
+        this_src_attn_mask = self.src_attn_mask_batches[self.pointer]
         this_tgt = self.tgt_batches[self.pointer]
         this_tgt_y = self.tgt_y_batches[self.pointer]
         this_tgt_mask = self.tgt_mask_batches[self.pointer]
@@ -240,7 +246,7 @@ class non_pair_data_loader():
 
         self.pointer = (self.pointer + 1) % self.num_batch
         return this_batch_sentences, this_batch_labels, \
-                this_src, this_src_mask, this_tgt, this_tgt_y, \
+                this_src, this_src_mask, this_src_attn_mask, this_tgt, this_tgt_y, \
                 this_tgt_mask, this_ntokens
 
 

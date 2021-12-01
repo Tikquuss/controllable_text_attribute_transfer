@@ -1,26 +1,15 @@
-# Controllable Unsupervised Text Attribute Transfer via Editing Entangled Latent Representation
-```
-@misc{wang2019controllable,
-      title={Controllable Unsupervised Text Attribute Transfer via Editing Entangled Latent Representation}, 
-      author={Ke Wang and Hang Hua and Xiaojun Wan},
-      year={2019},
-      eprint={1905.12926},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
-}
-```
-
 ## librairies
 ```bash
+pip install -r requirements.txt
 import nltk
 nltk.download('punkt')
 ```
 
-## Data preprocessing
+## Data preprocessings
 ```bash
-datapath=/content/imdb
+datapath=/content
 references_files=""
-data_columns=review,sentiment
+data_columns=content,labels
 save_to=/content
 
 python preprocessed_data.py -f ${datapath}/data_train.csv,${datapath}/data_val.csv,${datapath}/data_test.csv -rf $references_files -dc $data_columns  -st $save_to
@@ -33,20 +22,36 @@ for data_type in train test val; do
 done
 ```
 
-## Train on train set (+ dev set if available) 
+## Pretrain
 ```bash
-chmod +x main.sh
-dump_path=/content
-data_columns=review,sentiment
-. main.sh $dump_path $data_columns
+load_from_checkpoint=None
+#load_from_checkpoint=/content/pretrain/1
+eval_only=False
+task=pretrain
+! . main.sh $dump_path $data_columns $task $load_from_checkpoint $eval_only
 ```
 
-## Evaluate on test set
+# Eval pretrain
 ```bash
 load_from_checkpoint=/content/pretrain/1
 eval_only=True
-. main.sh $dump_path $data_columns $load_from_checkpoint $eval_only
+task=pretrain
+. main.sh $dump_path $data_columns $task $load_from_checkpoint $eval_only
 ```
 
-# References
-- https://github.com/Nrgeup/controllable-text-attribute-transfer
+## Debias
+```bash
+load_from_checkpoint=/content/pretrain/1
+#load_from_checkpoint=/content/debias/1
+eval_only=False
+task=debias
+. main.sh $dump_path $data_columns $task $load_from_checkpoint $eval_only
+```
+
+## Eval Debias
+```bash
+load_from_checkpoint=/content/debias/1
+eval_only=True
+task=debias
+. main.sh $dump_path $data_columns $task $load_from_checkpoint $eval_only
+```

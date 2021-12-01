@@ -1,4 +1,5 @@
 import torch
+from torch import tensor
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -214,30 +215,44 @@ class EncoderDecoder(nn.Module):
         # self.memory2latent = nn.Linear(self.model_size, self.latent_size)
         # self.latent2memory = nn.Linear(self.latent_size, self.model_size)
 
-    def forward(self, src, tgt, src_mask, tgt_mask, return_intermediate=False):
+    def forward(self, src, tgt, src_mask, src_attn_mask, tgt_mask, return_intermediate=False):
         """
         Take in and process masked src and target sequences.
         """
-        if return_intermediate :
-            latent, z = self.encode(src, src_mask, return_intermediate)  # (batch_size, max_src_seq, d_model)
+        ae_vs_ar = True # auto_encoder, auto_regressire
+        if ae_vs_ar :
+            if return_intermediate :
+                latent, z = self.encode(src, src_mask, return_intermediate)  # (batch_size, max_src_seq, d_model)
+            else :
+                latent = self.encode(src, src_mask)  # (batch_size, max_src_seq, d_model)
+        
+            latent = self.sigmoid(latent)
+            # memory = self.position_layer(memory)
+
+            latent = torch.sum(latent, dim=1)  # (batch_size, d_model)
+
+            # latent = self.memory2latent(memory)  # (batch_size, max_src_seq, latent_size)
+
+            # latent = self.memory2latent(memory)
+            # memory = self.latent2memory(latent)  # (batch_size, max_src_seq, d_model)
+        
+            logit = self.decode(latent.unsqueeze(1), tgt, tgt_mask)  # (batch_size, max_tgt_seq, d_model)
+            prob = self.generator(logit)  # (batch_size, max_seq, vocab_size)
+            if return_intermediate :
+                return latent, prob, z
+            else :
+                return latent, prob
         else :
-            latent = self.encode(src, src_mask)  # (batch_size, max_src_seq, d_model)
-        latent = self.sigmoid(latent)
-        # memory = self.position_layer(memory)
-
-        latent = torch.sum(latent, dim=1)  # (batch_size, d_model)
-
-        # latent = self.memory2latent(memory)  # (batch_size, max_src_seq, latent_size)
-
-        # latent = self.memory2latent(memory)
-        # memory = self.latent2memory(latent)  # (batch_size, max_src_seq, d_model)
-
-        logit = self.decode(latent.unsqueeze(1), tgt, tgt_mask)  # (batch_size, max_tgt_seq, d_model)
-        prob = self.generator(logit)  # (batch_size, max_seq, vocab_size)
-        if return_intermediate :
-            return latent, prob, z
-        else :
-            return latent, prob
+            tensor = self.src_embed(src)
+            tensor *= src_mask.unsqueeze(-1).to(tensor.dtype)
+            tensor = self.encoder(tensor, src_attn_mask, return_intermediate)
+            tensor *= src_mask.unsqueeze(-1).to(tensor.dtype)
+            #pred_mask = None
+            #masked_tensor = tensor[pred_mask.unsqueeze(-1).expand_as(tensor)].view(-1, self.dim)
+            #scores, loss = self.pred_layer(masked_tensor, y, get_scores, reduction=reduction)
+            #return scores, loss
+            prob = self.generator(tensor)  
+            return tensor, prob
 
     def encode(self, src, src_mask, return_intermediate=False):
         return self.encoder(self.src_embed(src), src_mask, return_intermediate)
@@ -491,12 +506,13 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
             text_z_prime["gold_ans"].append(gold_ans[it])
         
         _, tensor_labels, \
-        tensor_src, tensor_src_mask, tensor_tgt, tensor_tgt_y, \
+        tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, _ = data_loader.next_batch()
         # only on negative example
         negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
         tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
         tensor_src = tensor_src[negative_examples].squeeze(0) 
+        tensor_src_attn_mask = tensor_src_attn_mask[negative_examples].squeeze(0)
         tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0)  
         tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
         tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
@@ -509,7 +525,7 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
             text_z_prime["source"].append([id2text_sentence(t, args.id_to_word) for t in tensor_tgt_y])
             text_z_prime["origin_labels"].append(tensor_labels.cpu().numpy())
 
-            origin_data, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_tgt_mask)
+            origin_data, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
 
             # Define target label
             y_prime = 1.0 - (tensor_labels > 0.5).float()

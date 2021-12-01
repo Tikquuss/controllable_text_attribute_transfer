@@ -8,9 +8,10 @@ import copy
 import tqdm
 import numpy as np
 import itertools
+import random
 
 from model import make_model, make_deb, Classifier, LabelSmoothing, fgim_attack, fgim, LossSedat
-from data import prepare_data, non_pair_data_loader, get_cuda, id2text_sentence, to_var, load_human_answer
+from data import prepare_data, non_pair_data_loader, get_cuda, id2text_sentence, to_var, load_human_answer, calc_bleu
 from utils import bool_flag, add_log, add_output, write_text_z_in_file
 from optim import get_optimizer
 
@@ -66,11 +67,11 @@ def train_step(args, data_loader, ae_model, dis_model, ae_optimizer, dis_optimiz
     for it in range(data_loader.num_batch):
         flag_rec = True
         batch_sentences, tensor_labels, \
-        tensor_src, tensor_src_mask, tensor_tgt, tensor_tgt_y, \
+        tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, tensor_ntokens = data_loader.next_batch()
 
         # Forward pass
-        latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_tgt_mask)
+        latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
 
         # Loss calculation
         if not args.sedat :
@@ -143,12 +144,16 @@ def train_step(args, data_loader, ae_model, dis_model, ae_optimizer, dis_optimiz
                 )
             )
             if flag_rec :
-                add_log(args, "input : %s"%id2text_sentence(tensor_tgt_y[0], args.id_to_word))
+                i = random.randint(0, len(tensor_tgt_y))
+                reference = id2text_sentence(tensor_tgt_y[i], args.id_to_word)
+                add_log(args, "input : %s"%reference)
                 generator_text = ae_model.greedy_decode(latent,
                                                         max_len=args.max_sequence_length,
                                                         start_id=args.id_bos)
                 # batch_sentences
-                add_log(args, "gen : %s"%id2text_sentence(generator_text[0], args.id_to_word))
+                hypothesis = id2text_sentence(generator_text[i], args.id_to_word)
+                add_log(args, "gen : %s"%hypothesis)
+                add_log(args, "bleu : %s"%calc_bleu(reference.split(" "), hypothesis.split(" ")))
         
         
     s = {}
@@ -177,10 +182,10 @@ def eval_step(args, data_loader, ae_model, dis_model, ae_criterion, dis_criterio
     for it in range(data_loader.num_batch):
         flag_rec = True
         batch_sentences, tensor_labels, \
-        tensor_src, tensor_src_mask, tensor_tgt, tensor_tgt_y, \
+        tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, tensor_ntokens = data_loader.next_batch()
         # Forward pass
-        latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_tgt_mask)
+        latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
         # Loss calculation
         if not args.sedat :
             loss_rec = ae_criterion(out.contiguous().view(-1, out.size(-1)),
@@ -378,14 +383,14 @@ def fgim_algorithm(args, ae_model, dis_model):
     else :
         for it in range(test_data_loader.num_batch):
             batch_sentences, tensor_labels, \
-            tensor_src, tensor_src_mask, tensor_tgt, tensor_tgt_y, \
+            tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
             tensor_tgt_mask, tensor_ntokens = test_data_loader.next_batch()
 
             print("------------%d------------" % it)
             print(id2text_sentence(tensor_tgt_y[0], args.id_to_word))
             print("origin_labels", tensor_labels)
 
-            latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_tgt_mask)
+            latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
             generator_text = ae_model.greedy_decode(latent,
                                                     max_len=args.max_sequence_length,
                                                     start_id=args.id_bos)
@@ -455,7 +460,7 @@ def sedat_train(args, ae_model, f, deb) :
         loss_clf, total_clf, n_valid_clf = 0, 0, 0
         for it in range(train_data_loader.num_batch):
             _, tensor_labels, \
-            tensor_src, tensor_src_mask, tensor_tgt, tensor_tgt_y, \
+            tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
             tensor_tgt_mask, _ = train_data_loader.next_batch()
             flag = True
             # only on negative example
@@ -464,13 +469,14 @@ def sedat_train(args, ae_model, f, deb) :
                 tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
                 tensor_src = tensor_src[negative_examples].squeeze(0) 
                 tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0)  
+                tensor_src_attn_mask = tensor_src_attn_mask[negative_examples].squeeze(0)
                 tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
                 tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
                 tensor_tgt_mask = tensor_tgt_mask[negative_examples].squeeze(0) 
                 flag = negative_examples.any()
             if flag :
                 # forward
-                z, out, z_list = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_tgt_mask, return_intermediate=True)
+                z, out, z_list = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask, return_intermediate=True)
                 #y_hat = f.forward(to_var(z.clone()))
                 y_hat = f.forward(z)
                 
@@ -524,7 +530,7 @@ def sedat_train(args, ae_model, f, deb) :
                     loss_rec = torch.tensor(float("nan"))
                     
                 ae_optimizer.zero_grad()
-                (loss_dis + loss_deb + loss_rec).backward()
+                (loss_dis + loss_deb +  loss_rec).backward()
                 ae_optimizer.step()
                 
                 if True :
@@ -642,13 +648,14 @@ def sedat_eval(args, ae_model, f, deb) :
     for it in tqdm.tqdm(list(range(eval_data_loader.num_batch)), desc="SEDAT"):
         
         _, tensor_labels, \
-        tensor_src, tensor_src_mask, tensor_tgt, tensor_tgt_y, \
+        tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, _ = eval_data_loader.next_batch()
         # only on negative example
         negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
         tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
         tensor_src = tensor_src[negative_examples].squeeze(0) 
-        tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0)  
+        tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0) 
+        tensor_src_attn_mask = tensor_src_attn_mask[negative_examples].squeeze(0)
         tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
         tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
         tensor_tgt_mask = tensor_tgt_mask[negative_examples].squeeze(0) 
@@ -659,7 +666,7 @@ def sedat_eval(args, ae_model, f, deb) :
             text_z_prime["source"].append([id2text_sentence(t, args.id_to_word) for t in tensor_tgt_y])
             text_z_prime["origin_labels"].append(tensor_labels.cpu().numpy())
             
-            origin_data, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_tgt_mask)
+            origin_data, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
             
             generator_id = ae_model.greedy_decode(origin_data, max_len=max_sequence_length, start_id=id_bos)
             generator_text = [id2text_sentence(gid, id_to_word) for gid in generator_id]
@@ -815,7 +822,7 @@ def main(args):
 
     if os.path.exists(args.load_from_checkpoint):
         # Load models' params from checkpoint
-        add_log(args, "Load pretrained weigths, pretrain : ae, dis %s ..." % args.current_save_path)
+        add_log(args, "Load pretrained weigths, pretrain : ae, dis %s ..." % args.load_from_checkpoint)
         try :
             ae_model.load_state_dict(torch.load(os.path.join(args.load_from_checkpoint, 'ae_model_params.pkl')))
             dis_model.load_state_dict(torch.load(os.path.join(args.load_from_checkpoint, 'dis_model_params.pkl')))
