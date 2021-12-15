@@ -55,3 +55,14 @@ eval_only=True
 task=debias
 . main.sh $dump_path $data_columns $task $load_from_checkpoint $eval_only
 ```
+
+```
+@misc{wang2019controllable,
+      title={Controllable Unsupervised Text Attribute Transfer via Editing Entangled Latent Representation}, 
+      author={Ke Wang and Hang Hua and Xiaojun Wan},
+      year={2019},
+      eprint={1905.12926},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```

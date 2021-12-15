@@ -214,13 +214,15 @@ class EncoderDecoder(nn.Module):
 
         # self.memory2latent = nn.Linear(self.model_size, self.latent_size)
         # self.latent2memory = nn.Linear(self.latent_size, self.model_size)
-
+        self.ae_vs_ar = True # auto_encoder, auto_regressire
+        if not self.ae_vs_ar :
+            self.decoder = None
+            self.tgt_embed = None
     def forward(self, src, tgt, src_mask, src_attn_mask, tgt_mask, return_intermediate=False):
         """
         Take in and process masked src and target sequences.
         """
-        ae_vs_ar = True # auto_encoder, auto_regressire
-        if ae_vs_ar :
+        if self.ae_vs_ar :
             if return_intermediate :
                 latent, z = self.encode(src, src_mask, return_intermediate)  # (batch_size, max_src_seq, d_model)
             else :
@@ -243,16 +245,24 @@ class EncoderDecoder(nn.Module):
             else :
                 return latent, prob
         else :
-            tensor = self.src_embed(src)
-            tensor *= src_mask.unsqueeze(-1).to(tensor.dtype)
-            tensor = self.encoder(tensor, src_attn_mask, return_intermediate)
-            tensor *= src_mask.unsqueeze(-1).to(tensor.dtype)
+            tensor = self.src_embed(tgt)
+            tensor *= src_attn_mask.unsqueeze(-1).to(tensor.dtype)
+            if return_intermediate :
+                tensor, z = self.encoder(tensor, tgt_mask, return_intermediate)
+            else :
+                tensor, z = self.encoder(tensor, tgt_mask)
+            tensor *= src_attn_mask.unsqueeze(-1).to(tensor.dtype)
             #pred_mask = None
             #masked_tensor = tensor[pred_mask.unsqueeze(-1).expand_as(tensor)].view(-1, self.dim)
             #scores, loss = self.pred_layer(masked_tensor, y, get_scores, reduction=reduction)
             #return scores, loss
             prob = self.generator(tensor)  
-            return tensor, prob
+            latent = self.sigmoid(tensor)
+            latent = torch.sum(latent, dim=1)
+            if return_intermediate :
+                return latent, prob, z
+            else :
+                return latent, prob
 
     def encode(self, src, src_mask, return_intermediate=False):
         return self.encoder(self.src_embed(src), src_mask, return_intermediate)
@@ -269,27 +279,44 @@ class EncoderDecoder(nn.Module):
         latent: (batch_size, max_src_seq, d_model)
         src_mask: (batch_size, 1, max_src_len)
         '''
-        batch_size = latent.size(0)
+        if self.ae_vs_ar :
+            batch_size = latent.size(0)
 
-        # memory = self.latent2memory(latent)
+            # memory = self.latent2memory(latent)
 
-        ys = torch.ones(batch_size, 1).fill_(start_id).long().to(latent.device)  # (batch_size, 1)
-        for i in range(max_len - 1):
-            # input("==========")
-            # print("="*10, i)
-            # print("ys", ys.size())  # (batch_size, i)
-            # print("tgt_mask", subsequent_mask(ys.size(1)).size())  # (1, i, i)
-            out = self.decode(latent.unsqueeze(1), to_var(ys), to_var(subsequent_mask(ys.size(1)).long()))
-            prob = self.generator(out[:, -1])
-            # print("prob", prob.size())  # (batch_size, vocab_size)
-            _, next_word = torch.max(prob, dim=1)
-            # print("next_word", next_word.size())  # (batch_size)
+            ys = torch.ones(batch_size, 1).fill_(start_id).long().to(latent.device)  # (batch_size, 1)
+            for i in range(max_len - 1):
+                # input("==========")
+                # print("="*10, i)
+                # print("ys", ys.size())  # (batch_size, i)
+                # print("tgt_mask", subsequent_mask(ys.size(1)).size())  # (1, i, i)
+                out = self.decode(latent.unsqueeze(1), to_var(ys), to_var(subsequent_mask(ys.size(1)).long()))
+                prob = self.generator(out[:, -1])
+                # print("prob", prob.size())  # (batch_size, vocab_size)
+                _, next_word = torch.max(prob, dim=1)
+                # print("next_word", next_word.size())  # (batch_size)
 
-            # print("next_word.unsqueeze(1)", next_word.unsqueeze(1).size())
+                # print("next_word.unsqueeze(1)", next_word.unsqueeze(1).size())
 
-            ys = torch.cat([ys, next_word.unsqueeze(1)], dim=1)
-            # print("ys", ys.size())
-        return ys[:, 1:]
+                ys = torch.cat([ys, next_word.unsqueeze(1)], dim=1)
+                # print("ys", ys.size())
+            return ys[:, 1:]
+        else :
+            pad_id = 0
+            batch_size = latent.size(0)
+            ys = torch.ones(batch_size, 1).fill_(start_id).long().to(latent.device)  # (batch_size, 1)
+            for i in range(max_len - 1):
+                tensor = self.src_embed(to_var(ys))
+                src_attn_mask = to_var((ys != pad_id).long())
+                tgt_mask = to_var(subsequent_mask(ys.size(1)).long())
+                tensor *= src_attn_mask.unsqueeze(-1).to(tensor.dtype)
+                tensor = self.encoder(tensor, tgt_mask)
+                tensor *= src_attn_mask.unsqueeze(-1).to(tensor.dtype)
+                prob = self.generator(tensor[:, -1])
+                _, next_word = torch.max(prob, dim=1)
+                ys = torch.cat([ys, next_word.unsqueeze(1)], dim=1)
+            return ys[:, 1:]
+                
 
 
 def make_model(d_vocab, N, d_model, latent_size, d_ff=1024, h=4, dropout=0.1):

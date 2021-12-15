@@ -144,7 +144,7 @@ def train_step(args, data_loader, ae_model, dis_model, ae_optimizer, dis_optimiz
                 )
             )
             if flag_rec :
-                i = random.randint(0, len(tensor_tgt_y))
+                i = random.randint(0, len(tensor_tgt_y)-1)
                 reference = id2text_sentence(tensor_tgt_y[i], args.id_to_word)
                 add_log(args, "input : %s"%reference)
                 generator_text = ae_model.greedy_decode(latent,

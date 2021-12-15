@@ -191,7 +191,8 @@ class non_pair_data_loader():
 
             pad_id = 0
             src_mask = (src != pad_id).unsqueeze(-2)
-            src_attn_mask = self.make_std_mask(src, pad_id)
+            #src_attn_mask = self.make_std_mask(src, pad_id)
+            src_attn_mask = tgt != pad_id
             tgt_mask = self.make_std_mask(tgt, pad_id)
             ntokens = (tgt_y != pad_id).data.sum().float()
 
