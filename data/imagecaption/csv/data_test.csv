@@ -1,0 +1,601 @@
+,review,sentiment
+0,a little kid plays on the swing at the playground .,0
+1,a man in a black jersey is standing in gym .,1
+2,a brown dog is running .,1
+3,a wolf running in sandy plains .,1
+4,a child walking on rocks .,0
+5,a girl with a red helmet carying a lot of rope .,1
+6,three dogs wrestle in the grass .,0
+7,a brown and white dog is walking on a woodland path .,0
+8,three children are posing on a playground slide .,1
+9,man on four wheeler in the air .,1
+10,a boy stands in the road wearing a big red hat .,1
+11,two boys tussle in the sand at a park .,1
+12,a group of people hold drinks and point at the camera .,1
+13,two men in red robes performing martial arts .,1
+14,a man is jumping his bicycle off of a ramp .,0
+15,a skateboarder balances on a red rail .,0
+16,a girl holding a camera .,0
+17,a lone skier jumping on the side of a snowy mountain .,0
+18,two girls primping a third girl in village setting .,0
+19,a man hikes up a huge mountain .,0
+20,people lean over in the snow .,1
+21,boy jumps through mud puddle .,0
+22,girl wearing purple jacket rides a red snow sled .,0
+23,three dogs play together in the water .,1
+24,a group of people hold drinks and point at the camera .,0
+25,a trials biker doing a stunt on a graffiti-filled wall .,0
+26,a brown dog and a grey dog play in the grass .,0
+27,a man wearing a hat in a snowstorm .,0
+28,a woman prepares to throw a stick to a leaping dog .,1
+29,baseball batter ready to hit the ball,1
+30,artists working on a mosaic on the ground .,1
+31,black man in red shirt with tie sitting on a bus,1
+32,two dogs play in the snow together .,0
+33,a man and a woman are standing on the curb .,1
+34,boy in a blue shirt riding on a toy .,1
+35,two women sharing a drink taking a blurred photo of their faces,1
+36,boy in a blue shirt riding on a toy .,0
+37,german shephard jumping through black hoop while people watch,0
+38,black man in red shirt with tie sitting on a bus,0
+39,black and white dog shaking its wet head .,0
+40,a girl wearing pink dances on the sidewalk .,1
+41,a brown dog is running .,0
+42,a skier is riding skis along a tree lined trail .,1
+43,three dogs wrestle in the grass .,1
+44,the man and woman are sitting by the boats .,0
+45,two dogs play by a tree .,0
+46,a man standing in front of several cliff faces .,0
+47,a brown and white dog is walking on a woodland path .,1
+48,deer and turkeys in the snow .,1
+49,a dog jumps to catch a flying disc .,1
+50,a young man dances by a fountain .,0
+51,a mountain biker rides across a rocky terrain .,0
+52,a dog with floppy ears runs in a dry field .,1
+53,a boy is surfing towards the beach on a green surfboard .,1
+54,three children are standing with baskets on numbered blocks .,0
+55,a girl in the bathing suit talking to a guy .,1
+56,a brown dog is running and looking up at the sky .,1
+57,a group of young people walking with two talking on cellphones .,1
+58,a mother dog giving her puppy some milk .,0
+59,a street vending machine is parked while people walk by .,1
+60,a person in a red jacket snowboarding .,1
+61,a brown dog and a grey dog play in the grass .,1
+62,a child ballerina puts on make-up backstage in a mirror .,0
+63,a skier in yellow pants goes down a slope .,1
+64,a lone skier jumping on the side of a snowy mountain .,1
+65,a person doing bicycle tricks on a wooden ramp .,1
+66,people facing mountains in the snow .,0
+67,a bicyclist is performing a midair stunt .,1
+68,a man and woman relaxing in shallow water near a waterfall .,1
+69,two football players in hike formation .,1
+70,some people at a part gather to take a picture,0
+71,a girl in a white shirt jumps on a trampoline .,1
+72,a dog running through a field towards a camera .,1
+73,some young adults are wearing green foam statute of liberty crowns .,0
+74,a person being dressed in clothing with feathers and sequins .,0
+75,a child ballerina puts on make-up backstage in a mirror .,1
+76,a dog running through a field towards a camera .,0
+77,a little boy pours sand from a shovel into a pail .,1
+78,children tossing dead leaves on lawn .,1
+79,two asian children standing on cement .,1
+80,a small town lies at the base of verdant mountains .,1
+81,a boy playing in a mud puddle .,0
+82,a dirt bike rider catches some air going off a large hill,0
+83,a man is climbing up a very large rock .,0
+84,a man and a woman ride scooter like vehicles,0
+85,a pelican flies through the air in front of trees .,0
+86,young man performing bicycle trick on loading dock near dumpsters .,0
+87,the old looking ship is sailing at sunset,1
+88,a group of four children dancing in a backyard .,0
+89,three people work on their laptops inside a store .,0
+90,a cop sitting on his police bike .,1
+91,the dog runs towards the ball .,0
+92,a man and woman relaxing in shallow water near a waterfall .,0
+93,four people sitting behind a table .,1
+94,cyclists are leaping into the air whilst being watched by spectators .,1
+95,a child throwing an orange toy .,0
+96,a little kid plays on the swing at the playground .,1
+97,a group of women in native garb sit on the floor .,0
+98,a white bird flies agains the backdrop of green foliage .,0
+99,white dog traveling alone down a paved path through some woods,1
+100,german shephard jumping through black hoop while people watch,1
+101,a little boy pours sand from a shovel into a pail .,0
+102,a little boy in denim overalls slides down an orange slide .,0
+103,three police officers pose with a motorcycle .,0
+104,a boy wearing board shorts falls backwards in the water .,1
+105,people facing mountains in the snow .,1
+106,brown dog chasing black dog through snow .,0
+107,a skateboarder on a city street .,0
+108,the little girl in the pool is wearing a red swimsuit .,1
+109,the boy is diving into the pool as the couple watch .,0
+110,two men in white play guitars .,0
+111,a girl with a red helmet carying a lot of rope .,0
+112,a child on a pink raft in a pool .,1
+113,a religious sect gathered together .,1
+114,a group of teenagers sitting in the hall at school .,1
+115,four people holding three dogs in a field .,0
+116,a man standing in front of several cliff faces .,1
+117,a man with red hair grins .,1
+118,a busy city street as people are walking .,1
+119,the cats are lazily laying in the field of dry grass .,1
+120,two girls enjoy a ride at an amusement park .,0
+121,the group of hikers is resting in front of a mountain .,0
+122,two girls drink at a party .,1
+123,a woman holds a ball while a dog leaps for it .,0
+124,a boy and a girl dancing .,0
+125,this hound is searching the water for his prey .,0
+126,woman and dog in rowboat on the water .,1
+127,people are seated outdoors to see someone onstage .,1
+128,a black dog plays around in water .,0
+129,a woman sits and watches another woman play in the pool .,1
+130,a pelican flies through the air in front of trees .,1
+131,a dog in the grass in front of a building .,0
+132,the family enjoys an afternoon at the park in the shade .,0
+133,a boy and a girl dancing .,1
+134,black and white dog shaking its wet head .,1
+135,two children smile for the camera .,0
+136,a hockey player keeps his eye on the game .,0
+137,two people stand by the water 's edge .,1
+138,a black lab with tags frolicks in the water .,0
+139,a soccer player hitting the ball with his head,1
+140,a group of women hugging each other,1
+141,a brown dog is digging in the dirt .,0
+142,skiiers moving along a trail .,1
+143,three dogs play together in the water .,0
+144,the old looking ship is sailing at sunset,0
+145,a person outlined by the sun,1
+146,two men in red robes performing martial arts .,0
+147,a football player kicks the ball .,1
+148,a girl holds onto a rope above the water .,1
+149,a skateboarder balances on a red rail .,1
+150,the puppy is carrying a ball in its mouth .,0
+151,two girls hapily playing in a park .,0
+152,deer and turkeys in the snow .,0
+153,a brown dog jumps in the sand .,0
+154,the family attempts to get a prize at the carnival .,1
+155,boy jumps through mud puddle .,1
+156,a mother dog giving her puppy some milk .,1
+157,a child on a fake horse ride .,0
+158,two tan dogs playing together in a fenced yard .,0
+159,people lean over in the snow .,0
+160,two people walk outside while holding hands .,0
+161,skiiers walking up the hill through a forest .,1
+162,young boy dressed in green holds baby goat in arms .,1
+163,a man and a woman looking at the camera .,0
+164,two people walk outside while holding hands .,1
+165,a furry dog is running through a doorway leading to plants .,0
+166,man in a yellow kayak is paddling through the rapids .,0
+167,the person blocks his face with newspaper to avoid being photographed .,0
+168,a girl is talking on the phone while sitting on a wall,0
+169,a man in yellow jacket rides a bike .,0
+170,a brown dog jumps in the sand .,1
+171,a group of asian girls are standing together .,1
+172,a dog is running towards the photographer .,0
+173,two dogs are running through a grassy area near tall trees .,1
+174,a black dog fetches a dead bird .,0
+175,this man has balanced his bicycle on a handrail .,0
+176,a dog jumps over a hurdle on a grass field .,0
+177,women skaters on a skating rink in athletic equipment .,0
+178,a dog runs through muddy water .,0
+179,a boy stands in the road wearing a big red hat .,0
+180,the man is doing a jump while skiing .,0
+181,two dogs playing with each other,1
+182,a woman with pink bags rides her bike over a bridge .,1
+183,a man wearing a leather coat and a white shirt .,0
+184,a surfer riding under a wave .,0
+185,two women wrestle in front of a crowd .,0
+186,woman and dog in rowboat on the water .,0
+187,this man is kayaking in whitewater .,1
+188,six children stand with buckets at a racing dock .,0
+189,a man and a woman ride scooter like vehicles,1
+190,snowboarders do tricks on mountain .,1
+191,three people are in a pool dodging a giant splash .,0
+192,a young boy and a young girl walking towards each other,1
+193,two tan dogs playing together in a fenced yard .,1
+194,the man is snowboarding down a slope with gear and a hat,0
+195,a dog walks across a tall ladder .,1
+196,man in a yellow kayak is paddling through the rapids .,1
+197,two dogs wrestle in the snow .,0
+198,a smiling asian woman holding her baby,0
+199,a man about to hit a tennis ball with a racket .,0
+200,a man with a grey beard is sitting by a window .,1
+201,a person in a red shirt doing tricks on a bicycle .,1
+202,a boy plays in his bedroom with an air powered rocket .,0
+203,a crowd of people gather for a meal indoors .,1
+204,a dog wearing a blue leash rides in a car .,1
+205,a man wearing a leather coat and a white shirt .,1
+206,a lone scientist digging in the rock for artifacts .,1
+207,a man in a white outfit on a bench,0
+208,the racing greyhound is running on the racetrack .,1
+209,a bird swooping over water .,0
+210,a religious sect gathered together .,0
+211,three children are posing on a playground slide .,0
+212,a young girl jumping with a guitar hero guitar,0
+213,a small white dog inspects two sheep .,1
+214,a white dog carries a soda bottle on the snowy ground .,0
+215,a girl wearing pink dances on the sidewalk .,0
+216,two dogs play together in the yard .,1
+217,a woman wearing sunglasses standing next to two men .,1
+218,a toddler boy stands by a wooden fence .,1
+219,a man about to hit a tennis ball with a racket .,1
+220,a boy is surfing towards the beach on a green surfboard .,0
+221,the skier jumps over a hut in the snow covered forest .,0
+222,group of children play in rural area,0
+223,a small dog is running on the grass beside the road .,1
+224,a miniature dachshund has an apron on its back .,1
+225,this man has balanced his bicycle on a handrail .,1
+226,three people work on their laptops inside a store .,1
+227,a man and a woman show their tatooed hearts on their wrists,1
+228,a woman catches a young boy jumping into the pool .,1
+229,a wmoan is jumping off land and into a ditch .,0
+230,a black dog shaking off water,0
+231,a girl holding a camera .,1
+232,a black dog lays in the sand .,1
+233,a girl in a red skirt with some hula hoops,0
+234,a trials biker doing a stunt on a graffiti-filled wall .,1
+235,a shirtless man climbs a wall in nature .,0
+236,a group of children playing with props,1
+237,a woman is sitting near a flower bed overlooking a tunnel .,1
+238,costumed girl playing with a hula-hoop in a crowd .,1
+239,three well-dressed children are sitting on a bench and smiling .,0
+240,a man in a white outfit on a bench,1
+241,young boy leaps from a swing,1
+242,two girls drink at a party .,0
+243,black dog following a herd of sheep down a grassy lane .,0
+244,dark haired child eating a frozen treat .,0
+245,a shirtless man climbs a wall in nature .,1
+246,a little boy in denim overalls slides down an orange slide .,1
+247,group of young adults with buckets and soaking wet on street .,1
+248,a girl in a crowd laughs and climbs on something .,1
+249,the little girl splashes through the water .,0
+250,two women sharing a drink taking a blurred photo of their faces,0
+251,the man is snowboarding down a slope with gear and a hat,1
+252,four people sitting behind a table .,0
+253,a smiling asian woman holding her baby,1
+254,young man wearing hair net on head and face,1
+255,a man in yellow jacket rides a bike .,1
+256,three police officers pose with a motorcycle .,1
+257,a brown dog is digging in the dirt .,1
+258,two dogs are running through a grassy area near tall trees .,0
+259,a boy in a swimming pool .,1
+260,a person doing bicycle tricks on a wooden ramp .,0
+261,a man and a woman are standing on the curb .,0
+262,this man is kayaking in whitewater .,0
+263,a woman holds a ball while a dog leaps for it .,1
+264,artists working on a mosaic on the ground .,0
+265,a crowd sitting in an indoor stadium .,1
+266,three black dogs swimming in dirty water,1
+267,group of young adults with buckets and soaking wet on street .,0
+268,a brown dog sits alone in front of a snowbank .,1
+269,a man in a black jersey is standing in gym .,0
+270,a person in a red shirt doing tricks on a bicycle .,0
+271,a white bird flies agains the backdrop of green foliage .,1
+272,a small child doing a handstand on a bed .,0
+273,the family enjoys an afternoon at the park in the shade .,1
+274,the man is doing a jump while skiing .,1
+275,snow covers the ground and a young boy 's jacket .,0
+276,a crowd of people gather for a meal indoors .,0
+277,two dogs playfully fight over a ball outside .,1
+278,a red-haired woman looks off-camera .,1
+279,a boy jumps near a brick structure .,1
+280,a miniature dachshund has an apron on its back .,0
+281,a dog and a dust storm .,1
+282,a person is scuba diving in very clear blue water .,0
+283,a man sits on a bench .,1
+284,a man and woman against a pink background smile .,1
+285,a child walking on rocks .,1
+286,a boy plays in his bedroom with an air powered rocket .,1
+287,two boys play in the sand,0
+288,a dog with floppy ears runs in a dry field .,0
+289,the boy in the red shirt is skateboarding .,0
+290,a man in a leather jacket grins with his teeth showing .,0
+291,two asian men and asian woman sit in black massage chairs .,0
+292,boy in green tunic on rock wall .,0
+293,a large brown dog is running through a field of flowers .,0
+294,a black pitbull dog is running through the dirt .,0
+295,a man rowing a boat while the woman watches .,0
+296,a person is scuba diving in very clear blue water .,1
+297,a child on a fake horse ride .,1
+298,a woman with pink bags rides her bike over a bridge .,0
+299,dark haired child eating a frozen treat .,1
+300,the boy in the red jersey runs with the football .,1
+301,group of children play in rural area,1
+302,two dogs play with a tennis ball in the snow .,0
+303,a bicyclist is performing a midair stunt .,0
+304,a soccer player hitting the ball with his head,0
+305,a man and woman kiss in the street .,0
+306,a litlle boy playing on a swing,1
+307,a small dog is running on the grass beside the road .,0
+308,smiling little girl swimming in outdoor pool .,0
+309,a mountain biker rides across a rocky terrain .,1
+310,two women reviewing pictures they took .,1
+311,two women and a man are sitting at a round table .,0
+312,a girl in the bathing suit talking to a guy .,0
+313,a boy in a swimming pool .,0
+314,a skateboarder on a city street .,1
+315,the man and woman are sitting by the boats .,1
+316,a dog and a dust storm .,0
+317,young boy dressed in green holds baby goat in arms .,0
+318,two dogs wrestle in the snow .,1
+319,some young adults are wearing green foam statute of liberty crowns .,1
+320,a closeup of a dog licking his nose .,0
+321,a rugby player swings his leg back to punt the ball .,1
+322,little boy running very fast .,1
+323,a wmoan is jumping off land and into a ditch .,1
+324,a man paddles his canoe on the lake .,0
+325,two little kids walk side by side while one eats something .,1
+326,two people stand by the water 's edge .,0
+327,a collie jumps over a hurdle .,0
+328,a dog walks on the sand along the water .,1
+329,a brown dog runs with a toy in its mouth .,0
+330,a dog wearing a blue leash rides in a car .,0
+331,a brown dog jumping through the air in a grassy yard .,0
+332,a girl holds onto a rope above the water .,0
+333,a group of greyhound dogs racing with muzzles covering their noses .,1
+334,a man riding a purple snowmobile,0
+335,a toddler sits with diapers spread around the floor .,1
+336,woman standing on a hill in front of the ocean .,0
+337,three black dogs swimming in dirty water,0
+338,a person on a bmx bike .,0
+339,the crowds are huge as the citizens await the opening .,1
+340,several young people celebrate by clapping and cheering .,1
+341,a girl wearing a white coat standing in a fountain .,1
+342,a toddler sits with diapers spread around the floor .,0
+343,a girl in a white shirt jumps on a trampoline .,0
+344,a woman jogging on an open field,1
+345,a red-haired woman looks off-camera .,0
+346,people gather around a life size chess game .,0
+347,a person outlined by the sun,0
+348,a man with a ponytail plays a piano in public .,0
+349,some people at a part gather to take a picture,1
+350,four dogs jumping over a hurdle .,0
+351,a child on a pink raft in a pool .,0
+352,a black pitbull dog is running through the dirt .,1
+353,a blonde girl climbing on a play set .,1
+354,a hockey team waits at the hockey rink .,0
+355,two asian children standing on cement .,0
+356,a boy playing in a mud puddle .,1
+357,a little girl jumping on a couch .,1
+358,the little girl in the pool is wearing a red swimsuit .,0
+359,a woman sits and watches another woman play in the pool .,0
+360,a man riding a purple snowmobile,1
+361,a group of women in native garb sit on the floor .,1
+362,a girl in a red skirt with some hula hoops,1
+363,two dogs play in the snow together .,1
+364,two people are walking along a long cannon on a tank .,0
+365,man on four wheeler in the air .,0
+366,children tossing dead leaves on lawn .,0
+367,a child supports a toddler underwater in a pool .,1
+368,woman standing on a hill in front of the ocean .,1
+369,two women reviewing pictures they took .,0
+370,a large group of people fly kites on a sunny day .,1
+371,a little girl sitting on a bed playing a guitar .,0
+372,a young man dances by a fountain .,1
+373,a wet boy carrying goggles runs .,0
+374,two boys tussle in the sand at a park .,0
+375,a boy smiles and swims in blue water .,1
+376,a closeup of a dog licking his nose .,1
+377,two dogs playfully fight over a ball outside .,0
+378,a group of women hugging each other,0
+379,a wolf running in sandy plains .,0
+380,a yellow dog shaking off from a jump into a stream .,0
+381,two asian men and asian woman sit in black massage chairs .,1
+382,white dog traveling alone down a paved path through some woods,0
+383,a crowd sitting in an indoor stadium .,0
+384,two little kids walk side by side while one eats something .,0
+385,the group of hikers is resting in front of a mountain .,1
+386,a dog in the grass in front of a building .,1
+387,the black dog is climbing on a rock .,1
+388,three kids play on a wall with a green ball .,1
+389,a litlle boy playing on a swing,0
+390,a small child doing a handstand on a bed .,1
+391,a man is jumping his bicycle off of a ramp .,1
+392,the black dog is climbing on a rock .,0
+393,a dog runs through muddy water .,1
+394,a group of asian girls are standing together .,0
+395,cyclists are leaping into the air whilst being watched by spectators .,0
+396,"a person on a bmx bike , leaping onto a bench .",1
+397,a woman climbing a rocky cliff .,1
+398,a woman prepares to throw a stick to a leaping dog .,0
+399,two girls primping a third girl in village setting .,1
+400,a girl playing with a stretchy charm bracelet .,0
+401,a little girl sitting on a bed playing a guitar .,1
+402,two hockey players fall to the ground in a game .,0
+403,the family attempts to get a prize at the carnival .,0
+404,a person in a red jacket snowboarding .,0
+405,a busy city street as people are walking .,0
+406,brown dog chasing black dog through snow .,1
+407,four dogs jumping over a hurdle .,1
+408,three well-dressed children are sitting on a bench and smiling .,1
+409,a brown dog sits alone in front of a snowbank .,0
+410,a skier in yellow pants goes down a slope .,0
+411,a rugby player swings his leg back to punt the ball .,0
+412,young man wearing hair net on head and face,0
+413,two children kick each other while being suspended from the ceiling .,1
+414,a small town lies at the base of verdant mountains .,0
+415,the skier jumps over a hut in the snow covered forest .,1
+416,a black and white dog is running through shallow water .,1
+417,a girl in a crowd laughs and climbs on something .,0
+418,the little girl is holding up a stick .,0
+419,skiiers moving along a trail .,0
+420,a small white dog inspects two sheep .,0
+421,a man wearing a hat in a snowstorm .,1
+422,four people holding three dogs in a field .,1
+423,a surfer riding under a wave .,1
+424,a man in black on a surfboard riding a wave .,0
+425,a young girl jumping with a guitar hero guitar,1
+426,a wet boy carrying goggles runs .,1
+427,three kids play on a wall with a green ball .,0
+428,two children smile for the camera .,1
+429,a young girl plays in the sand on a beach .,0
+430,two women and a man are sitting at a round table .,1
+431,two girls hapily playing in a park .,1
+432,a woman is sitting near a flower bed overlooking a tunnel .,0
+433,a black and a tan dog .,1
+434,the woman wrapped a flag around her body and burned incense .,1
+435,the crowds are huge as the citizens await the opening .,0
+436,a young girl plays in the sand on a beach .,1
+437,skiiers walking up the hill through a forest .,0
+438,a small brown puddle running through a grassy yard .,1
+439,snowboarders do tricks on mountain .,0
+440,a dog jumps to catch a flying disc .,0
+441,three people are in a pool dodging a giant splash .,1
+442,a skier is riding skis along a tree lined trail .,0
+443,a black and a tan dog .,0
+444,a man and woman against a pink background smile .,0
+445,two football players in hike formation .,0
+446,this hound is searching the water for his prey .,1
+447,a woman wearing sunglasses standing next to two men .,0
+448,a little girl pushes a little boy on the swing .,0
+449,the person blocks his face with newspaper to avoid being photographed .,1
+450,several young people celebrate by clapping and cheering .,0
+451,a black and white dog is running through shallow water .,0
+452,the boy is diving into the pool as the couple watch .,1
+453,a man hikes up a huge mountain .,1
+454,a boy wearing board shorts falls backwards in the water .,0
+455,a crowd scene with people in yellow and white native clothing .,1
+456,a dog jumps over a hurdle on a grass field .,1
+457,a little girl in navy blue is posing on a railing .,0
+458,a black lab with tags frolicks in the water .,1
+459,a man with a ponytail plays a piano in public .,1
+460,a bird is standing on a rock overlooking a waterfall .,1
+461,snow covers the ground and a young boy 's jacket .,1
+462,fire is coming out of the back of a race car .,1
+463,people are seated outdoors to see someone onstage .,0
+464,young boy leaps from a swing,0
+465,a bird swooping over water .,1
+466,a small brown puddle running through a grassy yard .,0
+467,a guy riding a bike through mud and water .,1
+468,a hockey team waits at the hockey rink .,1
+469,two dogs play by a tree .,1
+470,a young boy playing in a swimming pool,1
+471,a black dog fetches a dead bird .,1
+472,two people are standing outside of a coffee house .,0
+473,a young boy playing in a swimming pool,0
+474,a black dog plays around in water .,1
+475,boy in green tunic on rock wall .,1
+476,a toddler boy stands by a wooden fence .,0
+477,the little girl is holding up a stick .,1
+478,people gather around a life size chess game .,1
+479,a brown dog runs with a toy in its mouth .,1
+480,a group of teenagers sitting in the hall at school .,0
+481,a group of four children dancing in a backyard .,1
+482,baseball batter ready to hit the ball,0
+483,a young couple walking together through an outdoor market .,0
+484,a dog walks across a tall ladder .,0
+485,three small puppies bite and play together in the grass .,1
+486,the little kid just missed a soccer kick for the goal,0
+487,three brown and black dogs are splashing in the water .,0
+488,a man in black on a surfboard riding a wave .,1
+489,two people are standing outside of a coffee house .,1
+490,a brown dog is running and looking up at the sky .,0
+491,a little girl jumping on a couch .,0
+492,a hockey player keeps his eye on the game .,1
+493,a woman catches a young boy jumping into the pool .,0
+494,a man sits by a dock looking at the water .,1
+495,a man with a grey beard is sitting by a window .,0
+496,two women wrestle in front of a crowd .,1
+497,a person with cooking utilities poses menacingly in a dark environment .,1
+498,a furry dog is running through a doorway leading to plants .,1
+499,a dog on an obstacle platform and a man .,0
+500,a white dog catches a frisbee in a jumping pool .,0
+501,a man sits by a dock looking at the water .,0
+502,the boy in the red jersey runs with the football .,0
+503,three brown and black dogs are splashing in the water .,1
+504,a little boy jumping from one chair to another .,0
+505,a man and a woman show their tatooed hearts on their wrists,0
+506,smiling little girl swimming in outdoor pool .,1
+507,a german shepherd is jumping through a ring on fire .,1
+508,the woman wrapped a flag around her body and burned incense .,0
+509,six children stand with buckets at a racing dock .,1
+510,a child throwing an orange toy .,1
+511,two girls enjoy a ride at an amusement park .,1
+512,a man paddles his canoe on the lake .,1
+513,a man rowing a boat while the woman watches .,1
+514,a dog jumps over a pile of wood .,1
+515,fire is coming out of the back of a race car .,0
+516,a dirt bike rider catches some air going off a large hill,1
+517,a boy jumps near a brick structure .,0
+518,a man in a black shirt wanders around amongst fencing players .,1
+519,a person on a bmx bike .,1
+520,two children kick each other while being suspended from the ceiling .,0
+521,two dogs playing with each other,0
+522,two dogs play with a tennis ball in the snow .,1
+523,two people are walking along a long cannon on a tank .,1
+524,a lone scientist digging in the rock for artifacts .,0
+525,little league slides into plate where rival player crouches in anticipation .,1
+526,a boy smiles and swims in blue water .,0
+527,a bird is standing on a rock overlooking a waterfall .,0
+528,a guy riding a bike through mud and water .,0
+529,a young boy and a young girl walking towards each other,0
+530,two boys play in the sand,1
+531,a girl wearing a white coat standing in a fountain .,0
+532,a group of young people walking with two talking on cellphones .,0
+533,a crowd scene with people in yellow and white native clothing .,0
+534,a man sits on a bench .,0
+535,two dogs play together in the yard .,0
+536,little boy running very fast .,0
+537,two men in white play guitars .,1
+538,people in a bus which is heading to 84 peterson .,1
+539,a girl playing with a stretchy charm bracelet .,1
+540,three children are standing with baskets on numbered blocks .,1
+541,the racing greyhound is running on the racetrack .,0
+542,a large group of people fly kites on a sunny day .,0
+543,a white dog carries a soda bottle on the snowy ground .,1
+544,people in a bus which is heading to 84 peterson .,0
+545,"a person on a bmx bike , leaping onto a bench .",0
+546,women skaters on a skating rink in athletic equipment .,1
+547,a young woman stands in front of some shrubs .,0
+548,a black dog lays in the sand .,0
+549,a dog jumps over a pile of wood .,0
+550,a football player kicks the ball .,0
+551,a little boy jumping from one chair to another .,1
+552,the puppy is carrying a ball in its mouth .,1
+553,a white dog catches a frisbee in a jumping pool .,1
+554,a dog is running towards the photographer .,1
+555,person standing beside bike in stream .,0
+556,a group of old men walking down the street,1
+557,a young woman stands in front of some shrubs .,1
+558,a man and woman kiss in the street .,1
+559,the boy in the red shirt is skateboarding .,1
+560,young man performing bicycle trick on loading dock near dumpsters .,1
+561,a black dog shaking off water,1
+562,little league slides into plate where rival player crouches in anticipation .,0
+563,a man and a woman looking at the camera .,1
+564,the little girl splashes through the water .,1
+565,a yellow dog shaking off from a jump into a stream .,1
+566,a young couple walking together through an outdoor market .,1
+567,a brown dog jumping through the air in a grassy yard .,1
+568,the dog runs towards the ball .,1
+569,a little girl pushes a little boy on the swing .,1
+570,costumed girl playing with a hula-hoop in a crowd .,0
+571,a woman climbing a rocky cliff .,0
+572,a little girl in navy blue is posing on a railing .,1
+573,a person with cooking utilities poses menacingly in a dark environment .,0
+574,three small puppies bite and play together in the grass .,0
+575,a person being dressed in clothing with feathers and sequins .,1
+576,a group of greyhound dogs racing with muzzles covering their noses .,0
+577,two hockey players fall to the ground in a game .,1
+578,girl wearing purple jacket rides a red snow sled .,1
+579,person standing beside bike in stream .,1
+580,a man is climbing up a very large rock .,1
+581,a german shepherd is jumping through a ring on fire .,0
+582,a dog on an obstacle platform and a man .,1
+583,a woman jogging on an open field,0
+584,a dog walks on the sand along the water .,0
+585,a girl is talking on the phone while sitting on a wall,1
+586,a street vending machine is parked while people walk by .,0
+587,a cop sitting on his police bike .,0
+588,a large brown dog is running through a field of flowers .,1
+589,black dog following a herd of sheep down a grassy lane .,1
+590,a group of old men walking down the street,0
+591,the little kid just missed a soccer kick for the goal,1
+592,a man in a leather jacket grins with his teeth showing .,1
+593,a collie jumps over a hurdle .,1
+594,the cats are lazily laying in the field of dry grass .,0
+595,a child supports a toddler underwater in a pool .,0
+596,a man in a black shirt wanders around amongst fencing players .,0
+597,a group of children playing with props,0
+598,a blonde girl climbing on a play set .,0
+599,a man with red hair grins .,0
