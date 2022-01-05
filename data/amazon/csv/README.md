@@ -1,6 +1,0 @@
-# In dataset
-0 : negative sentiment
-1 : positive sentiment
-# In algorithm
-0 : positive example = (1 - positive sentiment)
-1 : negative example = (1 - negative sentiment)

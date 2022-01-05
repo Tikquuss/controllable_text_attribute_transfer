@@ -536,19 +536,22 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
         tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, _ = data_loader.next_batch()
         # only on negative example
-        negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
-        tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
-        tensor_src = tensor_src[negative_examples].squeeze(0) 
-        tensor_src_attn_mask = tensor_src_attn_mask[negative_examples].squeeze(0)
-        tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0)  
-        tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
-        tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
-        tensor_tgt_mask = tensor_tgt_mask[negative_examples].squeeze(0) 
-        #if gold_ans is not None :
-        #    text_z_prime["gold_ans"][-1] = text_z_prime["gold_ans"][-1][negative_examples]
+        f = True 
+        if True :
+            negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
+            tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
+            tensor_src = tensor_src[negative_examples].squeeze(0) 
+            tensor_src_attn_mask = tensor_src_attn_mask[negative_examples].squeeze(0)
+            tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0)  
+            tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
+            tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
+            tensor_tgt_mask = tensor_tgt_mask[negative_examples].squeeze(0) 
+            f = negative_examples.any()
+            #if gold_ans is not None :
+            #    text_z_prime["gold_ans"][-1] = text_z_prime["gold_ans"][-1][negative_examples]
 
         #print("------------%d------------" % it)
-        if negative_examples.any():
+        if f:
             text_z_prime["source"].append([id2text_sentence(t, args.id_to_word) for t in tensor_tgt_y])
             text_z_prime["origin_labels"].append(tensor_labels.cpu().numpy())
 
@@ -580,9 +583,11 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
                     
                 it = 0 
                 while True:
+                    output = output.round().int()
                     #if torch.cdist(output, y_prime) < t :
                     #if torch.sum((output - y_prime)**2, dim=1).sqrt().mean() < t :
-                    if torch.sum((output - y_prime).abs(), dim=1).mean() < t :
+                    #if torch.sum((output - y_prime).abs(), dim=1).mean() < t :
+                    if output == y_prime :
                         flag = True
                         break
             
@@ -631,6 +636,33 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
     return z_prime, text_z_prime
 
 class LossSedat:
+    """"""
+    def __init__(self,  penalty="lasso"):
+        assert penalty in ["lasso", "ridge"]
+        if penalty == "lasso" :
+            #self.criterion = F.l1_loss
+            self.ord = 1
+        else :
+            #self.criterion = F.mse_loss
+            self.ord = 2
+
+    def __call__(self, z, z_prime, is_list = True):
+        """
+        z, z_prime : (n_layers, bs, seq_len, dim) if is_list, else (bs, seq_len, dim)
+        """
+        if is_list:
+            z = torch.stack(z).transpose(0, 1) # (bs, n_layers, seq_len, dim)
+            z_prime = torch.stack(z_prime).transpose(0, 1) # (bs, n_layers, seq_len, dim)
+        #    loss = torch.stack([self.criterion(z_i, z_prime_i) for z_i, z_prime_i in zip(z, z_prime)]) # (bs, )
+        #else :
+        #    loss = self.criterion(z, z_prime) 
+
+        #loss = torch.linalg.matrix_norm(z-z_prime, ord=self.ord, dim=(-2, -1), keepdim=False) # (bs, n_layers)
+        loss = torch.linalg.norm(z-z_prime, ord=self.ord, dim=(-1)) # (bs, n_layers, seq_len)
+        #loss = torch.linalg.vector_norm(z-z_prime, ord=self.ord, dim=(-2, -1)) # (bs, n_layers)      
+        return loss.sum(dim=-1).sum(dim=-1).mean()
+    
+class LossSedat1:
     """"""
     def __init__(self,  penalty="lasso"):
         assert penalty in ["lasso", "ridge"]

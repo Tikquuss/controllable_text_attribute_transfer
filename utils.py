@@ -32,6 +32,9 @@ def add_output(args, ss):
         f.write(str(ss) + '\n')
 
 def write_text_z_in_file(args, text_z_prime) :
+    source_text = []
+    generated_text = []
+    debias_text = []
     with open(args.output_file, 'w') as f:
         keys = list(text_z_prime.keys())
         k1 = keys.index("source")
@@ -46,11 +49,20 @@ def write_text_z_in_file(args, text_z_prime) :
                 source = item[k1][j].split(" ")
                 before = item[k2][j].split(" ")
                 after = item[k3][j].split(" ")
+                source_text.append(item[k1][j])
+                generated_text.append(item[k2][j])
+                debias_text.append(item[k3][j])
                 b1 = round(calc_bleu(source, before), 4)
                 b2 = round(calc_bleu(source, after), 4)
                 b3 = round(calc_bleu(before, after), 4)
                 f.writelines(["bleu : source vs before = %s, source vs after = %s, before vs after = %s\n"%(b1, b2, b3)])
                 f.write("\n")
+    with open(args.output_file + ".source.txt", 'w') as f:
+        f.writelines(["%s\n"%t for t in source_text])
+    with open(args.output_file + ".gen.txt", 'w') as f:
+        f.writelines(["%s\n"%t for t in generated_text])
+    with open(args.output_file + ".deb.txt", 'w') as f:
+        f.writelines(["%s\n"%t for t in debias_text])
                 
 def plot_all_scores(scores=None, from_path="", prefix = ['train', 'eval'], 
                     to_plot = ['ae_loss', 'ae_acc', 'ae_ppl', 'clf_loss', 'clf_acc']) :

@@ -157,7 +157,7 @@ def build_id_file(file_list, dict_file, data_columns, references_files = [], sav
                 id = word_dict[word]
                 id_list2.append(id)
             
-            id_file_data.append([id_list1, id_list2])
+            #id_file_data.append([id_list1, id_list2])
             id_file_data.append("%s\t%s\n" % (' '.join([str(k) for k in id_list1]), ' '.join([str(k) for k in id_list2])))
         
         csv_path = get_csv_path(file_item, save_to)
@@ -174,6 +174,7 @@ if __name__ == '__main__':
     parser.add_argument("-rf", "--references_files", type=str, default="", help="ref_file1,ref_file2, ...")
     parser.add_argument("-dc", "--data_columns", type=str, default="c1,c2,..", help="")
     parser.add_argument("-st", "--save_to", type=str, default="", help="")
+    parser.add_argument("-df", "--dict_file", type=str, default="", help="")
 
     args = parser.parse_args()
     file_list = args.file_list.strip().split(",")
@@ -195,5 +196,7 @@ if __name__ == '__main__':
     text_column = data_columns[0]
     #label_column = data_columns[1]
 
-    dict_file = buid_dict_file(file_list, save_to, text_column, references_files = references_files)
+    dict_file = args.dict_file
+    if not os.path.exists(dict_file) :
+        dict_file = buid_dict_file(file_list, save_to, text_column, references_files = references_files)
     build_id_file(file_list, dict_file, data_columns, references_files = references_files, save_to = save_to)

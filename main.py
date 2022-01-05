@@ -286,7 +286,7 @@ def pretrain(args, ae_model, dis_model):
         id_eos=args.id_eos, id_unk=args.id_unk,
         max_sequence_length=args.max_sequence_length, vocab_size=args.vocab_size
     )
-    val_data_loader.create_batches(args, [args.val_data_file], if_shuffle=True, n_samples = args.valid_n_samples)
+    val_data_loader.create_batches(args, [args.val_data_file], if_shuffle=False, n_samples = args.valid_n_samples)
 
     ae_model.train()
     dis_model.train()
@@ -499,6 +499,7 @@ def sedat_train(args, ae_model, f, deb) :
                 # if f(z) > lambda :
                 if mask_deb.any() :
                     y_hat_deb = y_hat[mask_deb]
+                    l1 = - torch.log(1-y_hat_deb if args.positive_label==0 else y_hat_deb).sum()
                     if type_penalty == "last" :
                         z_deb = z[mask_deb].squeeze(0) if args.batch_size == 1 else z[mask_deb] 
                     elif type_penalty == "group" :
@@ -507,11 +508,11 @@ def sedat_train(args, ae_model, f, deb) :
                     z_prime, z_prime_list = deb(z_deb, mask=None, return_intermediate=True)
                     if type_penalty == "last" :
                         z_prime = torch.sum(ae_model.sigmoid(z_prime), dim=1)
-                        loss_deb = alpha * deb_criterion(z_deb, z_prime, is_list = False) + beta * y_hat_deb.sum()
+                        loss_deb = alpha * deb_criterion(z_deb, z_prime, is_list = False) + beta * l1
                     elif type_penalty == "group" :
                         z_deb_list = [z_[mask_deb] for z_ in z_list]
                         #assert len(z_deb_list) == len(z_prime_list)
-                        loss_deb = alpha * deb_criterion(z_deb_list, z_prime_list, is_list = True) + beta * y_hat_deb.sum()
+                        loss_deb = alpha * deb_criterion(z_deb_list, z_prime_list, is_list = True) + beta * l1
                 
                     deb_optimizer.zero_grad()
                     loss_deb.backward(retain_graph=True)
