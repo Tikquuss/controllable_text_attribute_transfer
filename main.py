@@ -1,4 +1,5 @@
 # coding: utf-8
+from platform import version
 import time
 import argparse
 import os
@@ -19,6 +20,16 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 eps = 1e-8
+
+def create_batches(data, batch_size) :
+    if batch_size == None:
+        batch_size = len(data)
+    num_batch = int(len(data) / batch_size)
+    result = []
+    for _index in range(num_batch):
+        item = data[_index*batch_size:(_index+1)*batch_size]
+        result.append(item)
+    return result
 
 def preparation(args):
     # set model save path
@@ -71,7 +82,7 @@ def train_step(args, data_loader, ae_model, dis_model, ae_optimizer, dis_optimiz
         tensor_tgt_mask, tensor_ntokens = data_loader.next_batch()
 
         # Forward pass
-        latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
+        latent, _, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
 
         # Loss calculation
         if not args.sedat :
@@ -185,7 +196,7 @@ def eval_step(args, data_loader, ae_model, dis_model, ae_criterion, dis_criterio
         tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, tensor_ntokens = data_loader.next_batch()
         # Forward pass
-        latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
+        latent, _, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
         # Loss calculation
         if not args.sedat :
             loss_rec = ae_criterion(out.contiguous().view(-1, out.size(-1)),
@@ -239,7 +250,6 @@ def eval_step(args, data_loader, ae_model, dis_model, ae_criterion, dis_criterio
     return s
 
 def settings(args, possib):
-    
     tmp_type = lambda name : "ppl" in name or "loss" in name
     # validation metrics
     metrics = []
@@ -279,7 +289,9 @@ def pretrain(args, ae_model, dis_model):
         id_eos=args.id_eos, id_unk=args.id_unk,
         max_sequence_length=args.max_sequence_length, vocab_size=args.vocab_size
     )
-    train_data_loader.create_batches(args, [args.train_data_file], if_shuffle=True, n_samples = args.train_n_samples)
+    file_list = [args.train_data_file]
+    #file_list = [args.train_data_file, args.test_data_file]
+    train_data_loader.create_batches(args, file_list, if_shuffle=True, n_samples = args.train_n_samples)
     
     val_data_loader = non_pair_data_loader(
         batch_size=args.batch_size, id_bos=args.id_bos,
@@ -308,29 +320,33 @@ def pretrain(args, ae_model, dis_model):
     for epoch in range(args.max_epochs):
         print('-' * 94)
         add_log(args, "")
-        s_train = train_step(args, train_data_loader, ae_model, dis_model, 
-                        ae_optimizer, dis_optimizer, ae_criterion, dis_criterion, epoch)
-        add_log(args, "")
-        s_eval = eval_step(args, val_data_loader, ae_model, dis_model, ae_criterion, dis_criterion)
-        scores = {**s_train, **s_eval}
-        stats.append(scores)
-        add_log(args, "")
-        if factor * scores[metric] > factor * best_criterion:
-            best_criterion = scores[metric]
-            add_log(args, "New best validation score: %f" % best_criterion)
-            decrease_counts = 0
-            # Save model
-            add_log(args, "Saving model to %s ..." % args.current_save_path)
-            torch.save(ae_model.state_dict(), os.path.join(args.current_save_path, 'ae_model_params.pkl'))
-            torch.save(dis_model.state_dict(), os.path.join(args.current_save_path, 'dis_model_params.pkl'))
-        else:
-            add_log(args, "Not a better validation score (%i / %i)." % (decrease_counts, decrease_counts_max))
-            decrease_counts += 1
-        if decrease_counts > decrease_counts_max:
-            add_log(args, "Stopping criterion has been below its best value for more "
-                            "than %i epochs. Ending the experiment..." % decrease_counts_max)
-            #exit()
-            break
+        try:
+            s_train = train_step(args, train_data_loader, ae_model, dis_model, 
+                            ae_optimizer, dis_optimizer, ae_criterion, dis_criterion, epoch)
+            add_log(args, "")
+            s_eval = eval_step(args, val_data_loader, ae_model, dis_model, ae_criterion, dis_criterion)
+            scores = {**s_train, **s_eval}
+            stats.append(scores)
+        
+            add_log(args, "")
+            if factor * scores[metric] > factor * best_criterion:
+                best_criterion = scores[metric]
+                add_log(args, "New best validation score: %f" % best_criterion)
+                decrease_counts = 0
+                # Save model
+                add_log(args, "Saving model to %s ..." % args.current_save_path)
+                torch.save(ae_model.state_dict(), os.path.join(args.current_save_path, 'ae_model_params.pkl'))
+                torch.save(dis_model.state_dict(), os.path.join(args.current_save_path, 'dis_model_params.pkl'))
+            else:
+                add_log(args, "Not a better validation score (%i / %i)." % (decrease_counts, decrease_counts_max))
+                decrease_counts += 1
+            if decrease_counts > decrease_counts_max:
+                add_log(args, "Stopping criterion has been below its best value for more "
+                                "than %i epochs. Ending the experiment..." % decrease_counts_max)
+                #exit()
+                break
+        except KeyboardInterrupt:
+            pass
         
     s_test = None
     if os.path.exists(args.test_data_file) :
@@ -365,9 +381,12 @@ def fgim_algorithm(args, ae_model, dis_model):
     test_data_loader.create_batches(args, file_list, if_shuffle=False, n_samples = args.test_n_samples)
     if args.references_files :
         gold_ans = load_human_answer(args.references_files, args.text_column)
-        assert len(gold_ans) == test_data_loader.num_batch
+        assert len(gold_ans) == len(test_data_loader.data_label_pairs)
+        gold_ans = create_batches(gold_ans, batch_size)
     else :
-        gold_ans = [[None]*batch_size]*test_data_loader.num_batch
+        #gold_ans = [[None]*batch_size]*test_data_loader.num_batch
+        gold_ans = None
+        
 
     add_log(args, "Start eval process.")
     ae_model.eval()
@@ -390,7 +409,7 @@ def fgim_algorithm(args, ae_model, dis_model):
             print(id2text_sentence(tensor_tgt_y[0], args.id_to_word))
             print("origin_labels", tensor_labels)
 
-            latent, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
+            latent, _, out = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
             generator_text = ae_model.greedy_decode(latent,
                                                     max_len=args.max_sequence_length,
                                                     start_id=args.id_bos)
@@ -432,6 +451,7 @@ def sedat_train(args, ae_model, f, deb) :
         max_sequence_length=args.max_sequence_length, vocab_size=args.vocab_size
     )
     file_list = [args.train_data_file]
+    #file_list = [args.train_data_file, args.test_data_file]
     if os.path.exists(args.val_data_file) :
         file_list.append(args.val_data_file)
     train_data_loader.create_batches(args, file_list, if_shuffle=True, n_samples = args.train_n_samples)
@@ -476,7 +496,9 @@ def sedat_train(args, ae_model, f, deb) :
                 flag = negative_examples.any()
             if flag :
                 # forward
-                z, out, z_list = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask, return_intermediate=True)
+                #with torch.no_grad(): 
+                #with torch.enable_grad() :
+                z, latent, out, z_list = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask, return_intermediate=True)
                 #y_hat = f.forward(to_var(z.clone()))
                 y_hat = f.forward(z)
                 
@@ -485,7 +507,7 @@ def sedat_train(args, ae_model, f, deb) :
                 loss_dis.backward(retain_graph=True)
                 dis_optimizer.step()
 
-                dis_lop = f.forward(z)
+                dis_lop = to_var(y_hat.clone()) # f.forward(z)
                 t_c = tensor_labels.view(-1).size(0) 
                 n_v = (dis_lop.round().int() == tensor_labels).sum().item()
                 loss_clf += loss_dis.item()
@@ -494,45 +516,101 @@ def sedat_train(args, ae_model, f, deb) :
                 clf_acc = 100. * n_v / (t_c+eps)
                 avg_clf_acc = 100. * n_valid_clf / (total_clf+eps)
                 avg_clf_loss = loss_clf / (it + 1)
-
-                mask_deb = y_hat.squeeze()>=lambda_ if args.positive_label==0 else y_hat.squeeze()<lambda_
-                # if f(z) > lambda :
-                if mask_deb.any() :
-                    y_hat_deb = y_hat[mask_deb]
-                    l1 = - torch.log(1-y_hat_deb if args.positive_label==0 else y_hat_deb).sum()
-                    if type_penalty == "last" :
-                        z_deb = z[mask_deb].squeeze(0) if args.batch_size == 1 else z[mask_deb] 
-                    elif type_penalty == "group" :
-                        # TODO : unit test for bach_size = 1
-                        z_deb = z_list[-1][mask_deb]
-                    z_prime, z_prime_list = deb(z_deb, mask=None, return_intermediate=True)
-                    if type_penalty == "last" :
+                version = 0
+                if version == 0 :
+                    z = z_list[-1]
+                    mask_deb = y_hat.squeeze()>=lambda_ if args.positive_label==0 else y_hat.squeeze()<lambda_
+                    # if f(z) > lambda :
+                    if mask_deb.any() :
+                        if type_penalty == "last" :
+                            z_deb = z[mask_deb].squeeze(0) if args.batch_size == 1 else z[mask_deb] 
+                        elif type_penalty == "group" :
+                            # TODO : unit test for bach_size = 1
+                            z_deb = z[mask_deb]
+                        #src_mask = None
+                        src_mask = tensor_src_mask[mask_deb]
+                        z_prime, z_prime_list = deb(z_deb, mask=src_mask, return_intermediate=True)
+                        if type_penalty == "last" :
+                            #z_p = torch.sum(ae_model.sigmoid(z_prime), dim=1)
+                            z_p = z_prime_list[-1]
+                            loss_deb = deb_criterion(z_deb, z_p, is_list = False)
+                        elif type_penalty == "group" :
+                            z_deb_list = [z_[mask_deb] for z_ in z_list]
+                            #assert len(z_deb_list) == len(z_prime_list)
+                            loss_deb = deb_criterion(z_deb_list, z_prime_list, is_list = True) 
+                    
+                        #y_hat_deb = y_hat[mask_deb]
                         z_prime = torch.sum(ae_model.sigmoid(z_prime), dim=1)
-                        loss_deb = alpha * deb_criterion(z_deb, z_prime, is_list = False) + beta * l1
+                        #with torch.no_grad():
+                        y_hat_deb = f.forward(z_prime)
+                        l1 = - torch.log(1-y_hat_deb if args.positive_label==0 else y_hat_deb).sum()
+                        
+                        if True :
+                            y_prime = 1.0 - (tensor_labels > 0.5).float()
+                            y_prime = y_prime[mask_deb]
+                            l1 = 1.0 * l1 + 1.0*dis_criterion(y_hat_deb, y_prime)
+                        
+                        loss_deb = alpha * loss_deb + beta * l1
+                        
+                        deb_optimizer.zero_grad()
+                        loss_deb.backward(retain_graph=True)
+                        deb_optimizer.step()
+                    else :
+                        loss_deb = torch.tensor(float("nan"))
+                    
+                    # else :
+                    if (~mask_deb).any() :
+                        out_ = out[~mask_deb] 
+                        tensor_tgt_y_ = tensor_tgt_y[~mask_deb] 
+                        tensor_ntokens = (tensor_tgt_y_ != 0).data.sum().float() 
+                        loss_rec = ae_criterion(out_.contiguous().view(-1, out_.size(-1)),
+                                                        tensor_tgt_y_.contiguous().view(-1)) / (tensor_ntokens.data+eps)
+                    else :
+                        loss_rec = torch.tensor(float("nan"))
+                        
+                    #ae_optimizer.zero_grad()
+                    #(loss_dis + loss_deb +  loss_rec).backward()
+                    #ae_optimizer.step()
+                    gen_deb = mask_deb.any()
+                else :
+                    gen_deb = True
+                    #if type_penalty == "last" :
+                    #    z_deb = z
+                    #elif type_penalty == "group" :
+                    #    z_deb = z_list[-1]
+                    z_deb = z_list[-1]
+                    #src_mask = None
+                    src_mask = tensor_src_mask
+                    z_prime, z_prime_list = deb(z_deb, mask=src_mask, return_intermediate=True)
+                    if type_penalty == "last" :
+                        #z_p = torch.sum(ae_model.sigmoid(z_prime), dim=1)
+                        z_p = z_prime_list[-1]
+                        loss_deb = deb_criterion(z_deb, z_p, is_list = False) 
                     elif type_penalty == "group" :
-                        z_deb_list = [z_[mask_deb] for z_ in z_list]
-                        #assert len(z_deb_list) == len(z_prime_list)
-                        loss_deb = alpha * deb_criterion(z_deb_list, z_prime_list, is_list = True) + beta * l1
-                
+                        z_deb_list = z_list    
+                        loss_deb = deb_criterion(z_deb_list, z_prime_list, is_list = True)
+                    
+                    z_prime = torch.sum(ae_model.sigmoid(z_prime), dim=1)
+                    #with torch.no_grad():
+                    y_hat = f.forward(z_prime)
+                    l1 = - torch.log(tensor_labels * (1.0 - y_hat) + (1.0 - tensor_labels) * y_hat).sum()
+                    
+                    if True :
+                        y_prime = 1.0 - (tensor_labels > 0.5).float()
+                        l1 = 1.0 * l1 + 1.0*dis_criterion(y_hat, y_prime)
+                    
+                    loss_deb = alpha * loss_deb + beta * l1
                     deb_optimizer.zero_grad()
                     loss_deb.backward(retain_graph=True)
                     deb_optimizer.step()
-                else :
-                    loss_deb = torch.tensor(float("nan"))
                 
-                # else :
-                if (~mask_deb).any() :
-                    out_ = out[~mask_deb] 
-                    tensor_tgt_y_ = tensor_tgt_y[~mask_deb] 
-                    tensor_ntokens = (tensor_tgt_y_ != 0).data.sum().float() 
-                    loss_rec = ae_criterion(out_.contiguous().view(-1, out_.size(-1)),
-                                                    tensor_tgt_y_.contiguous().view(-1)) / (tensor_ntokens.data+eps)
-                else :
-                    loss_rec = torch.tensor(float("nan"))
+                    tensor_ntokens = (tensor_tgt_y != 0).data.sum().float() 
+                    loss_rec = ae_criterion(out.contiguous().view(-1, out.size(-1)),
+                                                    tensor_tgt_y.contiguous().view(-1)) / (tensor_ntokens.data+eps)
                     
-                ae_optimizer.zero_grad()
-                (loss_dis + loss_deb +  loss_rec).backward()
-                ae_optimizer.step()
+                    #ae_optimizer.zero_grad()
+                    #(loss_dis + loss_deb +  loss_rec).backward()
+                    #ae_optimizer.step()
                 
                 if True :
                     n_v, n_w = get_n_v_w(tensor_tgt_y, out)
@@ -577,7 +655,7 @@ def sedat_train(args, ae_model, f, deb) :
                                                             start_id=args.id_bos)
                     # batch_sentences
                     add_log(args, "gen : %s"%id2text_sentence(generator_text[0], args.id_to_word))
-                    if mask_deb.any() :
+                    if gen_deb :
                         generator_text_prime = ae_model.greedy_decode(z_prime,
                                                                 max_len=args.max_sequence_length,
                                                                 start_id=args.id_bos)
@@ -631,8 +709,10 @@ def sedat_eval(args, ae_model, f, deb) :
     eval_data_loader.create_batches(args, file_list, if_shuffle=False, n_samples = args.test_n_samples)
     if args.references_files :
         gold_ans = load_human_answer(args.references_files, args.text_column)
-        assert len(gold_ans) == eval_data_loader.num_batch
+        assert len(gold_ans) == len(eval_data_loader.data_label_pairs)
+        gold_ans = create_batches(gold_ans, args.batch_size)
     else :
+        #gold_ans = [[None]*batch_size]*test_data_loader.num_batch
         gold_ans = None
 
     add_log(args, "Start eval process.")
@@ -652,28 +732,35 @@ def sedat_eval(args, ae_model, f, deb) :
         tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, _ = eval_data_loader.next_batch()
         # only on negative example
-        negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
-        tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
-        tensor_src = tensor_src[negative_examples].squeeze(0) 
-        tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0) 
-        tensor_src_attn_mask = tensor_src_attn_mask[negative_examples].squeeze(0)
-        tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
-        tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
-        tensor_tgt_mask = tensor_tgt_mask[negative_examples].squeeze(0) 
-        if negative_examples.any():
+        flag = True
+        if False :
+            negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
+            tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
+            tensor_src = tensor_src[negative_examples].squeeze(0) 
+            tensor_src_mask = tensor_src_mask[negative_examples].squeeze(0) 
+            tensor_src_attn_mask = tensor_src_attn_mask[negative_examples].squeeze(0)
+            tensor_tgt_y = tensor_tgt_y[negative_examples].squeeze(0) 
+            tensor_tgt = tensor_tgt[negative_examples].squeeze(0) 
+            tensor_tgt_mask = tensor_tgt_mask[negative_examples].squeeze(0) 
+            flag  = negative_examples.any()
+        if flag :
             if gold_ans is not None :
-                text_z_prime["gold_ans"].append(gold_ans[it])
+                text_z_prime["gold_ans"].append([id2text_sentence(t, args.id_to_word) for t in gold_ans[it]])
             
             text_z_prime["source"].append([id2text_sentence(t, args.id_to_word) for t in tensor_tgt_y])
             text_z_prime["origin_labels"].append(tensor_labels.cpu().numpy())
             
-            origin_data, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
+            origin_data, _, _, latent_list = ae_model.forward(tensor_src, tensor_tgt, 
+                tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask, return_intermediate=True)
             
             generator_id = ae_model.greedy_decode(origin_data, max_len=max_sequence_length, start_id=id_bos)
             generator_text = [id2text_sentence(gid, id_to_word) for gid in generator_id]
             text_z_prime["before"].append(generator_text)
             
-            data = deb(origin_data, mask = None)
+            #src_mask = None
+            src_mask = tensor_src_mask
+            #data = deb(origin_data, mask = src_mask)
+            data = deb(latent_list[-1], mask = src_mask)
             data = torch.sum(ae_model.sigmoid(data), dim=1)  # (batch_size, d_model)
             #logit = ae_model.decode(data.unsqueeze(1), tensor_tgt, tensor_tgt_mask)  # (batch_size, max_tgt_seq, d_model)
             #output = ae_model.generator(logit)  # (batch_size, max_seq, vocab_size)   

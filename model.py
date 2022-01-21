@@ -228,22 +228,22 @@ class EncoderDecoder(nn.Module):
             else :
                 latent = self.encode(src, src_mask)  # (batch_size, max_src_seq, d_model)
         
-            latent = self.sigmoid(latent)
+            lat = self.sigmoid(latent)
             # memory = self.position_layer(memory)
 
-            latent = torch.sum(latent, dim=1)  # (batch_size, d_model)
+            lat = torch.sum(lat, dim=1)  # (batch_size, d_model)
 
             # latent = self.memory2latent(memory)  # (batch_size, max_src_seq, latent_size)
 
             # latent = self.memory2latent(memory)
             # memory = self.latent2memory(latent)  # (batch_size, max_src_seq, d_model)
         
-            logit = self.decode(latent.unsqueeze(1), tgt, tgt_mask)  # (batch_size, max_tgt_seq, d_model)
+            logit = self.decode(lat.unsqueeze(1), tgt, tgt_mask)  # (batch_size, max_tgt_seq, d_model)
             prob = self.generator(logit)  # (batch_size, max_seq, vocab_size)
             if return_intermediate :
-                return latent, prob, z
+                return lat, latent, prob, z
             else :
-                return latent, prob
+                return lat, latent, prob
         else :
             tensor = self.src_embed(tgt)
             tensor *= src_attn_mask.unsqueeze(-1).to(tensor.dtype)
@@ -260,9 +260,9 @@ class EncoderDecoder(nn.Module):
             latent = self.sigmoid(tensor)
             latent = torch.sum(latent, dim=1)
             if return_intermediate :
-                return latent, prob, z
+                return latent, tensor, prob, z
             else :
-                return latent, prob
+                return latent, tensor, prob
 
     def encode(self, src, src_mask, return_intermediate=False):
         return self.encoder(self.src_embed(src), src_mask, return_intermediate)
@@ -317,8 +317,6 @@ class EncoderDecoder(nn.Module):
                 ys = torch.cat([ys, next_word.unsqueeze(1)], dim=1)
             return ys[:, 1:]
                 
-
-
 def make_model(d_vocab, N, d_model, latent_size, d_ff=1024, h=4, dropout=0.1):
     """Helper: Construct a model from hyperparameters."""
     c = copy.deepcopy
@@ -522,6 +520,7 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
         
     text_z_prime = {}
     text_z_prime = {"source" : [], "origin_labels" : [], "before" : [], "after" : [], "change" : [], "pred_label" : []}
+    text_z_prime["w_i"] = []
     if gold_ans is not None :
         text_z_prime["gold_ans"] = []
     z_prime = []
@@ -530,14 +529,14 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
     n_batches = 0
     for it in tqdm.tqdm(list(range(data_loader.num_batch)), desc="FGIM"):
         if gold_ans is not None :
-            text_z_prime["gold_ans"].append(gold_ans[it])
+            text_z_prime["gold_ans"].append( [id2text_sentence(t, args.id_to_word) for t in gold_ans[it]])
         
         _, tensor_labels, \
         tensor_src, tensor_src_mask, tensor_src_attn_mask, tensor_tgt, tensor_tgt_y, \
         tensor_tgt_mask, _ = data_loader.next_batch()
         # only on negative example
         f = True 
-        if True :
+        if False :
             negative_examples = ~(tensor_labels.squeeze()==args.positive_label)
             tensor_labels = tensor_labels[negative_examples].squeeze(0) # .view(1, -1)
             tensor_src = tensor_src[negative_examples].squeeze(0) 
@@ -555,11 +554,12 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
             text_z_prime["source"].append([id2text_sentence(t, args.id_to_word) for t in tensor_tgt_y])
             text_z_prime["origin_labels"].append(tensor_labels.cpu().numpy())
 
-            origin_data, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
+            origin_data, _, _ = ae_model.forward(tensor_src, tensor_tgt, tensor_src_mask, tensor_src_attn_mask, tensor_tgt_mask)
 
             # Define target label
+            #y_prime = 1.0 - tensor_labels 
             y_prime = 1.0 - (tensor_labels > 0.5).float()
-
+            
             ############################### FGIM ######################################################
             generator_id = ae_model.greedy_decode(origin_data, max_len=max_sequence_length, start_id=id_bos)
             generator_text = [id2text_sentence(gid, id_to_word) for gid in generator_id]
@@ -622,6 +622,7 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
                     text_z_prime["after"].append(generator_text)
                     text_z_prime["change"].append([True]*len(output))
                     text_z_prime["pred_label"].append([o.item() for o in output])
+                    text_z_prime["w_i"].append([w_i]*len(output))
                     break
             
             if not flag : # cannot debiaising
@@ -629,6 +630,7 @@ def fgim(data_loader, args, ae_model, c_theta, gold_ans = None) :
                 text_z_prime["after"].append(text_z_prime["before"][-1])
                 text_z_prime["change"].append([False]*len(y_prime))
                 text_z_prime["pred_label"].append([o.item() for o in y_prime])
+                text_z_prime["w_i"].append(["?"]*len(y_prime))
             
             n_batches += 1
             if n_batches > limit_batches:
